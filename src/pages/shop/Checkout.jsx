@@ -84,9 +84,9 @@ const Checkout = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
+    <div className="p-4 md:p-6  max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
       {/* Billing Details */}
-      <div className="flex-1">
+      <div className="flex-1 pt-20 ">
         <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Billing Details</h1>
         {error && <div className="text-red-500 mb-4">{error}</div>}
 
@@ -171,7 +171,7 @@ const Checkout = () => {
       </div>
 
       {/* Order Summary */}
-      <div className="w-full md:w-1/3 p-4 md:p-6 bg-white rounded-lg shadow-lg border border-gray-200">
+      <div className=" w-full md:w-1/3 p-4 md:p-6 bg-white rounded-lg shadow-lg border border-gray-200">
         <h2 className="text-lg md:text-xl font-bold mb-4 text-gray-800">Your Order</h2>
         <div className="space-y-4">
           {products.map((product) => (

@@ -139,7 +139,7 @@ const OrderSummary = ({ onClose }) => {
           </span>
         </div>
 
-        <Link to="#" onClick={onClose}>
+        <Link to="/Checkout" onClick={onClose}>
           <button className="mb-3 w-full rounded bg-[#7A2432] py-3 text-white hover:brightness-110">
             {t("checkout")}
           </button>
