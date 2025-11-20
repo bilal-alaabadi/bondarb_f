@@ -33,8 +33,8 @@ const SingleProduct = () => {
   // const isAEDCountry = country === 'الإمارات' || country === 'دول الخليج';
   // const currency = isAEDCountry ? 'AED' : 'OMR';
   // const rate = isAEDCountry ? 9.5 : 1;
-const currency = 'OMR';
-const rate = 1;
+  const currency = 'OMR';
+  const rate = 1;
   const outOfStock = product?.inStock === false || product?.stock === 0;
 
   useEffect(() => {
@@ -80,30 +80,30 @@ const rate = 1;
       {/* Breadcrumb (اختياري) */}
       <section className="section__container "></section>
 
-      <section className="section__container mt-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-        <div className="flex flex-col md:flex-row gap-8">
+      {/* ✅ توسيط على الموبايل مع الإبقاء على الديسكتوب كما هو */}
+      <section className="section__container mt-8 text-center md:text-left" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
           {/* Images */}
-          <div className="md:w-1/2 w-full">
-<div className="relative overflow-hidden rounded-md">
-  {discountPct > 0 && (
-    <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-      {lang === 'ar' ? `خصم ${discountPct}%` : `SALE ${discountPct}%`}
-    </div>
-  )}
+          <div className="md:w-1/2 w-full mx-auto">
+            <div className="relative overflow-hidden rounded-md">
+              {discountPct > 0 && (
+                <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {lang === 'ar' ? `خصم ${discountPct}%` : `SALE ${discountPct}%`}
+                </div>
+              )}
 
-  <img
-    src={images[currentImageIndex] || 'https://via.placeholder.com/800x800?text=No+Image'}
-    alt={product?.name || 'product'}
-    className="w-full h-auto transition-transform duration-300"
-    style={{ transform: `scale(${imageScale})` }}
-    onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/800x800?text=Image'; }}
-  />
-</div>
-
+              <img
+                src={images[currentImageIndex] || 'https://via.placeholder.com/800x800?text=No+Image'}
+                alt={product?.name || 'product'}
+                className="w-full h-auto transition-transform duration-300"
+                style={{ transform: `scale(${imageScale})` }}
+                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/800x800?text=Image'; }}
+              />
+            </div>
 
             {/* Thumbnails */}
             {images.length > 0 && (
-              <div className="mt-4 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 gap-2">
+              <div className="mt-4 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 gap-2 justify-items-center md:justify-items-start">
                 {images.map((src, idx) => (
                   <button
                     key={idx}
@@ -129,11 +129,11 @@ const rate = 1;
           </div>
 
           {/* Info */}
-          <div className="md:w-1/2 w-full">
+          <div className="md:w-1/2 w-full mx-auto md:mx-0 text-center md:text-left">
             <h1 className="text-2xl font-semibold mb-2">{product?.name}</h1>
 
             {/* Price */}
-            <div className="flex items-baseline gap-3 mb-5">
+            <div className="flex items-baseline gap-3 mb-5 justify-center md:justify-start">
               <span className="text-xl text-[#3D4B2E] font-semibold">
                 {price.toFixed(2)} {currency}
               </span>
@@ -158,7 +158,7 @@ const rate = 1;
             {/* Quantity */}
             <div className="mb-4">
               <span className="block font-bold text-gray-800 mb-2">{lang === 'ar' ? 'الكمية' : 'Quantity'}</span>
-              <div className="flex items-center border rounded-md w-32 h-11 overflow-hidden">
+              <div className="flex items-center border rounded-md w-32 h-11 overflow-hidden mx-auto md:mx-0">
                 <button
                   type="button"
                   onClick={() => setQty((q) => Math.max(1, Number(q) - 1))}
@@ -202,7 +202,7 @@ const rate = 1;
       </section>
 
       {/* Reviews */}
-      <section className="section__container mt-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <section className="section__container mt-8 text-center md:text-left" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         <ReviewsCard productReviews={reviews} />
       </section>
     </>

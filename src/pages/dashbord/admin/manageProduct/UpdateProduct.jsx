@@ -1,4 +1,4 @@
-// ========================= UpdateProduct.jsx (مُعدّل نهائي) =========================
+// ========================= UpdateProduct.jsx (نهائي) =========================
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -8,11 +8,8 @@ import {
 import { useSelector } from 'react-redux';
 import TextInput from '../addProduct/TextInput';
 import SelectInput from '../addProduct/SelectInput';
-
-// ⚠️ عدّل هذا الاستيراد حسب اسم الملف الحقيقي في مشروعك
 import UpdateImag from '../manageProduct/UpdateImag';
 
-/* ======================= القوائم ======================= */
 const categories = [
   { label: 'أختر منتج', value: '' },
   { label: 'عطور مستوحاة', value: 'عطور مستوحاة' },
@@ -82,13 +79,11 @@ const sizeOptionsByCategory = {
   ],
 };
 
-/* ======================= المكوّن ======================= */
 const UpdateProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
-  // 🔴 مهم: نجلب بـ lang='raw' حتى نستلم الحقول الثنائية كما هي من الداتابيس
   const {
     data: productData,
     isLoading: isFetching,
@@ -200,7 +195,9 @@ const UpdateProduct = () => {
       formData.append('author', user?._id || '');
       formData.append('inStock', String(product.inStock));
       if (product.size) formData.append('size', product.size);
-      if (product.homeIndex !== '') formData.append('homeIndex', product.homeIndex);
+
+      // ❗ مهم: نرسل homeIndex دائمًا — حتى لو كان ""
+      formData.append('homeIndex', product.homeIndex);
 
       // ثنائي اللغة
       formData.append('name_en', product.name_en || baseName);
@@ -218,7 +215,8 @@ const UpdateProduct = () => {
       alert('تم تحديث المنتج بنجاح');
       navigate('/dashboard/manage-products');
     } catch (error) {
-      alert('حدث خطأ أثناء تحديث المنتج: ' + (error?.data?.message || error?.message || 'خطأ غير معروف'));
+      const msg = error?.data?.message || error?.message || 'خطأ غير معروف';
+      alert('حدث خطأ أثناء تحديث المنتج: ' + msg);
     }
   };
 

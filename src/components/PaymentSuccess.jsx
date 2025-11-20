@@ -1,4 +1,4 @@
-// ========================= PaymentSuccess.jsx (EN) =========================
+// ========================= PaymentSuccess.jsx (EN + AR) =========================
 import React, { useEffect, useState } from 'react';
 import { getBaseUrl } from '../utils/baseURL';
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,22 +11,132 @@ const PaymentSuccess = () => {
   const dispatch = useDispatch();
   const { selectedItems } = useSelector((state) => state.cart);
 
+  // 👇 نأخذ اللغة من الريدوكس
+  const lang = useSelector((state) => state.locale?.lang || 'en');
+  const isRTL = lang === 'ar';
+
+  // 👇 النصوص باللغتين في مكان واحد
+  const TEXT = {
+    en: {
+      paymentSuccess: 'Payment Successful',
+      giftBadge: 'Gift 🎁',
+      orderNumber: 'Order Number',
+      paymentSessionId: 'Payment Session ID',
+      giftCardDetails: 'Gift Card Details',
+      from: 'From',
+      to: 'To',
+      recipientPhone: 'Recipient Phone',
+      giftNotes: 'Gift Notes',
+      depositInfo1: 'A',
+      depositInfo2: 'deposit',
+      depositInfo3: 'was paid.',
+      depositInfo4: 'The remaining amount to complete the order is',
+      productsTitle: 'Products',
+      measurementsTitle: 'Measurements / Options:',
+      giftCardTitle: 'Gift Card',
+      orderSummary: 'Order Summary',
+      itemsTotal: 'Items Total:',
+      shippingFee: 'Shipping Fee:',
+      grandTotal: 'Grand Total:',
+      depositPaid: 'Deposit Paid:',
+      remainingAmount: 'Remaining Amount:',
+      remainingInfo:
+        'The remaining amount includes product value after discounts and shipping (if applicable).',
+      orderType: 'Order Type:',
+      orderTypeGift: 'Gift 🎁',
+      orderStatus: 'Order Status:',
+      customerName: 'Customer Name:',
+      email: 'Email:',
+      phone: 'Phone:',
+      country: 'Country:',
+      address: 'Address:',
+      orderDate: 'Order Date:',
+      loading: 'Loading...',
+      errorPrefix: 'Error:',
+      orderTypeGiftLabel: 'Gift 🎁',
+      // pretty keys
+      length: 'Length',
+      sleeveLength: 'Sleeve Length',
+      width: 'Width',
+      design: 'Design',
+      color: 'Color',
+      buttons: 'Buttons',
+      veilsQuantity: 'Veils Quantity',
+      colorOption: 'Color Option',
+      notes: 'Notes',
+      size: 'Size',
+      category: 'Category',
+      quantity: 'Quantity',
+    },
+    ar: {
+      paymentSuccess: 'تمت عملية الدفع بنجاح',
+      giftBadge: 'هدية 🎁',
+      orderNumber: 'رقم الطلب',
+      paymentSessionId: 'معرّف جلسة الدفع',
+      giftCardDetails: 'تفاصيل بطاقة الإهداء',
+      from: 'من',
+      to: 'إلى',
+      recipientPhone: 'رقم جوال المستلم',
+      giftNotes: 'ملاحظات الهدية',
+      depositInfo1: 'تم دفع',
+      depositInfo2: 'دفعة مقدمة',
+      depositInfo3: '',
+      depositInfo4: 'والمبلغ المتبقي لإكمال الطلب هو',
+      productsTitle: 'المنتجات',
+      measurementsTitle: 'المقاسات / الخيارات:',
+      giftCardTitle: 'بطاقة الإهداء',
+      orderSummary: 'ملخص الطلب',
+      itemsTotal: 'إجمالي المنتجات:',
+      shippingFee: 'رسوم الشحن:',
+      grandTotal: 'الإجمالي النهائي:',
+      depositPaid: 'الدفعة المدفوعة:',
+      remainingAmount: 'المبلغ المتبقي:',
+      remainingInfo:
+        'المبلغ المتبقي يشمل قيمة المنتجات بعد الخصومات مع الشحن (إن وُجد).',
+      orderType: 'نوع الطلب:',
+      orderTypeGift: 'هدية 🎁',
+      orderStatus: 'حالة الطلب:',
+      customerName: 'اسم العميل:',
+      email: 'البريد الإلكتروني:',
+      phone: 'رقم الهاتف:',
+      country: 'الدولة:',
+      address: 'العنوان:',
+      orderDate: 'تاريخ الطلب:',
+      loading: 'جاري التحميل...',
+      errorPrefix: 'خطأ:',
+      orderTypeGiftLabel: 'هدية 🎁',
+      // pretty keys
+      length: 'الطول',
+      sleeveLength: 'طول الكم',
+      width: 'العرض',
+      design: 'التصميم',
+      color: 'اللون',
+      buttons: 'الأزرار',
+      veilsQuantity: 'عدد الطرح',
+      colorOption: 'خيار اللون',
+      notes: 'ملاحظات',
+      size: 'المقاس',
+      category: 'الفئة',
+      quantity: 'الكمية',
+    },
+  }[lang];
+
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const client_reference_id = query.get('client_reference_id');
 
     if (client_reference_id) {
       fetch(`${getBaseUrl()}/api/orders/confirm-payment`, {
-        method: "POST",
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_reference_id })
+        body: JSON.stringify({ client_reference_id }),
       })
         .then((res) =>
           res.ok ? res.json() : Promise.reject(new Error(`HTTP error! status: ${res.status}`))
         )
         .then(async (data) => {
           if (data.error) throw new Error(data.error);
-          if (!data.order) throw new Error("No order data received.");
+          if (!data.order) throw new Error('No order data received.');
 
           if (data.order.status === 'completed' && selectedItems > 0) {
             dispatch(clearCart());
@@ -38,19 +148,33 @@ const PaymentSuccess = () => {
             (data.order.products || []).map(async (item) => {
               let fetched = {};
               try {
-                const response = await fetch(`${getBaseUrl()}/api/products/${item.productId}`);
+                // 👇 تعديل المسار ليتوافق مع الـ Backend
+                const response = await fetch(
+                  `${getBaseUrl()}/api/products/product/${item.productId}?lang=raw`
+                );
                 if (response.ok) {
                   const productData = await response.json();
                   fetched = productData?.product || {};
                 }
-              } catch { /* ignore */ }
+              } catch {
+                /* ignore */
+              }
 
               // Gift card per item, or fallback to order-level gift card
-              const gc = item.giftCard && (item.giftCard.from || item.giftCard.to || item.giftCard.phone || item.giftCard.note)
-                ? item.giftCard
-                : (data.order.giftCard && (data.order.giftCard.from || data.order.giftCard.to || data.order.giftCard.phone || data.order.giftCard.note)
-                    ? data.order.giftCard
-                    : null);
+              const gc =
+                item.giftCard &&
+                (item.giftCard.from ||
+                  item.giftCard.to ||
+                  item.giftCard.phone ||
+                  item.giftCard.note)
+                  ? item.giftCard
+                  : data.order.giftCard &&
+                    (data.order.giftCard.from ||
+                      data.order.giftCard.to ||
+                      data.order.giftCard.phone ||
+                      data.order.giftCard.note)
+                  ? data.order.giftCard
+                  : null;
 
               return {
                 productId: item.productId,
@@ -58,7 +182,14 @@ const PaymentSuccess = () => {
                 quantity: item.quantity,
                 measurements: item.measurements || {},
                 selectedSize: item.selectedSize,
-                category: item.category || fetched.category || '',
+                // 👇 هنا نأخذ الفئة من الـ item أو من الـ product بثلاث احتمالات
+                category:
+                  item.category ||
+                  (lang === 'ar'
+                    ? fetched.category_ar
+                    : fetched.category_en) ||
+                  fetched.category ||
+                  '',
                 image: item.image || fetched.image || '',
                 description: fetched.description || '',
                 price: item.price ?? fetched.regularPrice ?? fetched.price ?? 0,
@@ -70,18 +201,18 @@ const PaymentSuccess = () => {
           setProducts(productsDetails);
         })
         .catch((err) => {
-          console.error("Error confirming payment", err);
+          console.error('Error confirming payment', err);
           setError(err.message || String(err));
         });
     } else {
-      setError("No session ID found in the URL");
+      setError('No session ID found in the URL');
     }
-  }, [dispatch, selectedItems]);
+  }, [dispatch, selectedItems, lang]);
 
   // Robust UAE check (Arabic or English)
   const isUAE = (() => {
-    const c = order?.country?.trim()?.toLowerCase() || "";
-    return c === "الإمارات" || c === "uae" || c === "united arab emirates";
+    const c = order?.country?.trim()?.toLowerCase() || '';
+    return c === 'الإمارات' || c === 'uae' || c === 'united arab emirates';
   })();
 
   const currency = isUAE ? 'AED' : 'OMR';
@@ -91,31 +222,34 @@ const PaymentSuccess = () => {
 
   const prettyKey = (k) => {
     const map = {
-      length: 'Length',
-      sleeveLength: 'Sleeve Length',
-      width: 'Width',
-      design: 'Design',
-      color: 'Color',
-      buttons: 'Buttons',
-      quantity: 'Veils Quantity',
-      colorOption: 'Color Option',
-      notes: 'Notes',
-      size: 'Size',
+      length: TEXT.length,
+      sleeveLength: TEXT.sleeveLength,
+      width: TEXT.width,
+      design: TEXT.design,
+      color: TEXT.color,
+      buttons: TEXT.buttons,
+      quantity: TEXT.veilsQuantity,
+      colorOption: TEXT.colorOption,
+      notes: TEXT.notes,
+      size: TEXT.size,
     };
     return map[k] || k;
   };
 
   const renderMeasurements = (m) => {
     if (!m || typeof m !== 'object') return null;
-    const entries = Object.entries(m).filter(([_, v]) => v !== '' && v !== null && v !== undefined);
+    const entries = Object.entries(m).filter(
+      ([_, v]) => v !== '' && v !== null && v !== undefined
+    );
     if (entries.length === 0) return null;
     return (
       <div className="mt-3 text-sm rounded p-3">
-        <h5 className="font-semibold mb-2">Measurements / Options:</h5>
+        <h5 className="font-semibold mb-2">{TEXT.measurementsTitle}</h5>
         <ul className="list-disc pl-5 space-y-1">
           {entries.map(([key, val]) => (
             <li key={key}>
-              <span className="font-medium">{prettyKey(key)}:</span> <span>{String(val)}</span>
+              <span className="font-medium">{prettyKey(key)}: </span>
+              <span>{String(val)}</span>
             </li>
           ))}
         </ul>
@@ -123,8 +257,8 @@ const PaymentSuccess = () => {
     );
   };
 
-  if (error) return <div className="text-red-500">Error: {error}</div>;
-  if (!order) return <div>Loading...</div>;
+  if (error) return <div className="text-red-500">{TEXT.errorPrefix} {error}</div>;
+  if (!order) return <div>{TEXT.loading}</div>;
 
   const isDeposit = !!order.depositMode;
   const remaining = Number(order.remainingAmount || 0);
@@ -134,54 +268,96 @@ const PaymentSuccess = () => {
   );
 
   return (
-    <section className='section__container rounded p-6' dir="ltr">
+    <section
+      className="section__container rounded p-6"
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
       <h2 className="text-2xl font-bold mb-2">
-        Payment Successful
+        {TEXT.paymentSuccess}
         {hasGift && (
-          <span className="ml-2 inline-block text-sm font-semibold px-2 py-0.5 rounded bg-pink-100 text-pink-800 align-middle">
-            Gift 🎁
+          <span
+            className={`inline-block text-sm font-semibold px-2 py-0.5 rounded bg-pink-100 text-pink-800 align-middle ${
+              isRTL ? 'mr-2' : 'ml-2'
+            }`}
+          >
+            {TEXT.giftBadge}
           </span>
         )}
       </h2>
-      <p className="text-gray-600">Order Number: {order.orderId}</p>
+      <p className="text-gray-600">
+        {TEXT.orderNumber}: {order.orderId}
+      </p>
       {order.paymentSessionId && (
-        <p className="text-gray-600">Payment Session ID: {order.paymentSessionId}</p>
+        <p className="text-gray-600">
+          {TEXT.paymentSessionId}: {order.paymentSessionId}
+        </p>
       )}
 
       {/* Order-level Gift Card */}
       {hasGift && (
         <div className="mt-4 p-3 rounded-md bg-pink-50 border border-pink-200 text-pink-900 text-sm">
-          <h4 className="font-semibold mb-2">Gift Card Details</h4>
+          <h4 className="font-semibold mb-2">{TEXT.giftCardDetails}</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
-            {order.giftCard.from && <div><span className="font-medium">From: </span>{order.giftCard.from}</div>}
-            {order.giftCard.to && <div><span className="font-medium">To: </span>{order.giftCard.to}</div>}
-            {order.giftCard.phone && <div><span className="font-medium">Recipient Phone: </span>{order.giftCard.phone}</div>}
-            {order.giftCard.note && <div className="md:col-span-2"><span className="font-medium">Gift Notes: </span>{order.giftCard.note}</div>}
+            {order.giftCard.from && (
+              <div>
+                <span className="font-medium">{TEXT.from}: </span>
+                {order.giftCard.from}
+              </div>
+            )}
+            {order.giftCard.to && (
+              <div>
+                <span className="font-medium">{TEXT.to}: </span>
+                {order.giftCard.to}
+              </div>
+            )}
+            {order.giftCard.phone && (
+              <div>
+                <span className="font-medium">{TEXT.recipientPhone}: </span>
+                {order.giftCard.phone}
+              </div>
+            )}
+            {order.giftCard.note && (
+              <div className="md:col-span-2">
+                <span className="font-medium">{TEXT.giftNotes}: </span>
+                {order.giftCard.note}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {isDeposit && (
         <div className="mt-4 p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-sm">
-          A <span className="font-semibold">deposit</span> of {formatPrice(order.amount)} {currency} was paid.
-          The remaining amount to complete the order is <span className="font-semibold">{formatPrice(remaining)} {currency}</span>.
+          {TEXT.depositInfo1}{' '}
+          <span className="font-semibold">
+            {formatPrice(order.amount)} {currency}
+          </span>{' '}
+          {TEXT.depositInfo2} {TEXT.depositInfo3}{' '}
+          {TEXT.depositInfo4}{' '}
+          <span className="font-semibold">
+            {formatPrice(remaining)} {currency}
+          </span>
+          .
         </div>
       )}
 
       {/* Products */}
       <div className="mt-8 pt-6">
-        <h3 className="text-xl font-bold mb-4">Products</h3>
+        <h3 className="text-xl font-bold mb-4">{TEXT.productsTitle}</h3>
         <div className="space-y-6">
           {products.map((product, index) => (
-            <div key={index} className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg">
+            <div
+              key={index}
+              className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg"
+            >
               <div className="md:w-1/4">
                 <img
                   src={Array.isArray(product.image) ? product.image[0] : product.image}
                   alt={product.name}
                   className="w-full h-auto rounded-md"
                   onError={(e) => {
-                    e.target.src = "https://via.placeholder.com/150";
-                    e.target.alt = "Image not available";
+                    e.target.src = 'https://via.placeholder.com/150';
+                    e.target.alt = 'Image not available';
                   }}
                 />
               </div>
@@ -192,18 +368,18 @@ const PaymentSuccess = () => {
                 )}
 
                 <div className="mt-2">
-                  <span className="font-medium">Category: </span>
+                  <span className="font-medium">{TEXT.category}: </span>
                   <span>{product.category || '—'}</span>
                 </div>
 
                 <div className="mt-2">
-                  <span className="font-medium">Quantity: </span>
+                  <span className="font-medium">{TEXT.quantity}: </span>
                   <span>{product.quantity}</span>
                 </div>
 
                 {product.selectedSize && (
                   <div className="mt-2">
-                    <span className="font-medium">Size: </span>
+                    <span className="font-medium">{TEXT.size}: </span>
                     <span>{product.selectedSize}</span>
                   </div>
                 )}
@@ -217,20 +393,38 @@ const PaymentSuccess = () => {
                     (product.giftCard.phone && String(product.giftCard.phone).trim()) ||
                     (product.giftCard.note && String(product.giftCard.note).trim())) && (
                     <div className="mt-3 p-3 rounded-md bg-pink-50 border border-pink-200 text-pink-900 text-sm">
-                      <div className="font-semibold mb-1">Gift Card</div>
+                      <div className="font-semibold mb-1">{TEXT.giftCardTitle}</div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
                         {product.giftCard.from && String(product.giftCard.from).trim() && (
-                          <div><span className="font-medium">From: </span>{product.giftCard.from}</div>
+                          <div>
+                            <span className="font-medium">{TEXT.from}: </span>
+                            {product.giftCard.from}
+                          </div>
                         )}
                         {product.giftCard.to && String(product.giftCard.to).trim() && (
-                          <div><span className="font-medium">To: </span>{product.giftCard.to}</div>
+                          <div>
+                            <span className="font-medium">{TEXT.to}: </span>
+                            {product.giftCard.to}
+                          </div>
                         )}
-                        {product.giftCard.phone && String(product.giftCard.phone).trim() && (
-                          <div><span className="font-medium">Recipient Phone: </span>{product.giftCard.phone}</div>
-                        )}
-                        {product.giftCard.note && String(product.giftCard.note).trim() && (
-                          <div className="md:col-span-2"><span className="font-medium">Gift Notes: </span>{product.giftCard.note}</div>
-                        )}
+                        {product.giftCard.phone &&
+                          String(product.giftCard.phone).trim() && (
+                            <div>
+                              <span className="font-medium">
+                                {TEXT.recipientPhone}:{' '}
+                              </span>
+                              {product.giftCard.phone}
+                            </div>
+                          )}
+                        {product.giftCard.note &&
+                          String(product.giftCard.note).trim() && (
+                            <div className="md:col-span-2">
+                              <span className="font-medium">
+                                {TEXT.giftNotes}:{' '}
+                              </span>
+                              {product.giftCard.note}
+                            </div>
+                          )}
                       </div>
                     </div>
                   )}
@@ -242,41 +436,50 @@ const PaymentSuccess = () => {
 
       {/* Order Summary */}
       <div className="mt-8 border-t pt-6">
-        <h3 className="text-xl font-bold mb-4">Order Summary</h3>
+        <h3 className="text-xl font-bold mb-4">{TEXT.orderSummary}</h3>
         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
           {!isDeposit ? (
             <>
               <div className="flex justify-between py-2">
-                <span>Items Total:</span>
+                <span>{TEXT.itemsTotal}</span>
                 <span className="font-semibold">
-                  {formatPrice(Number(order.amount) - Number(order.shippingFee))} {currency}
+                  {formatPrice(Number(order.amount) - Number(order.shippingFee))}{' '}
+                  {currency}
                 </span>
               </div>
 
               <div className="flex justify-between py-2">
-                <span>Shipping Fee:</span>
-                <span className="font-semibold">{formatPrice(order.shippingFee)} {currency}</span>
+                <span>{TEXT.shippingFee}</span>
+                <span className="font-semibold">
+                  {formatPrice(order.shippingFee)} {currency}
+                </span>
               </div>
 
               <div className="flex justify-between py-2 border-t pt-3">
-                <span className="font-medium">Grand Total:</span>
-                <span className="font-bold text-lg">{formatPrice(order.amount)} {currency}</span>
+                <span className="font-medium">{TEXT.grandTotal}</span>
+                <span className="font-bold text-lg">
+                  {formatPrice(order.amount)} {currency}
+                </span>
               </div>
             </>
           ) : (
             <>
               <div className="flex justify-between py-2">
-                <span>Deposit Paid:</span>
-                <span className="font-semibold">{formatPrice(order.amount)} {currency}</span>
+                <span>{TEXT.depositPaid}</span>
+                <span className="font-semibold">
+                  {formatPrice(order.amount)} {currency}
+                </span>
               </div>
 
               <div className="flex justify-between py-2">
-                <span>Remaining Amount:</span>
-                <span className="font-semibold">{formatPrice(remaining)} {currency}</span>
+                <span>{TEXT.remainingAmount}</span>
+                <span className="font-semibold">
+                  {formatPrice(remaining)} {currency}
+                </span>
               </div>
 
               <div className="text-xs text-gray-600">
-                The remaining amount includes product value after discounts and shipping (if applicable).
+                {TEXT.remainingInfo}
               </div>
             </>
           )}
@@ -285,16 +488,36 @@ const PaymentSuccess = () => {
           {hasGift && (
             <div className="rounded-md border bg-pink-50 p-3 space-y-2">
               <div className="flex justify-between">
-                <span>Order Type:</span>
-                <span className="font-semibold text-pink-700">Gift 🎁</span>
+                <span>{TEXT.orderType}</span>
+                <span className="font-semibold text-pink-700">
+                  {TEXT.orderTypeGiftLabel}
+                </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                {order.giftCard.from && <div><span className="font-medium">From: </span>{order.giftCard.from}</div>}
-                {order.giftCard.to && <div><span className="font-medium">To: </span>{order.giftCard.to}</div>}
-                {order.giftCard.phone && <div><span className="font-medium">Recipient Phone: </span>{order.giftCard.phone}</div>}
+                {order.giftCard.from && (
+                  <div>
+                    <span className="font-medium">{TEXT.from}: </span>
+                    {order.giftCard.from}
+                  </div>
+                )}
+                {order.giftCard.to && (
+                  <div>
+                    <span className="font-medium">{TEXT.to}: </span>
+                    {order.giftCard.to}
+                  </div>
+                )}
+                {order.giftCard.phone && (
+                  <div>
+                    <span className="font-medium">
+                      {TEXT.recipientPhone}:{' '}
+                    </span>
+                    {order.giftCard.phone}
+                  </div>
+                )}
                 {order.giftCard.note && (
                   <div className="md:col-span-2">
-                    <span className="font-medium">Gift Notes: </span>{order.giftCard.note}
+                    <span className="font-medium">{TEXT.giftNotes}: </span>
+                    {order.giftCard.note}
                   </div>
                 )}
               </div>
@@ -302,36 +525,37 @@ const PaymentSuccess = () => {
           )}
 
           <div className="flex justify-between py-2 border-t pt-3">
-            <span>Order Status:</span>
+            <span>{TEXT.orderStatus}</span>
             <span className="font-semibold">{order.status}</span>
           </div>
 
           <div className="flex justify-between py-2">
-            <span>Customer Name:</span>
+            <span>{TEXT.customerName}</span>
             <span className="font-semibold">{order.customerName}</span>
           </div>
+
           <div className="flex justify-between py-2">
-            <span>Email:</span>
+            <span>{TEXT.email}</span>
             <span className="font-semibold">{order.email}</span>
           </div>
 
           <div className="flex justify-between py-2">
-            <span>Phone:</span>
+            <span>{TEXT.phone}</span>
             <span className="font-semibold">{order.customerPhone}</span>
           </div>
 
           <div className="flex justify-between py-2">
-            <span>Country:</span>
+            <span>{TEXT.country}</span>
             <span className="font-semibold">{order.country}</span>
           </div>
 
           <div className="flex justify-between py-2">
-            <span>Address:</span>
+            <span>{TEXT.address}</span>
             <span className="font-semibold">{order.wilayat}</span>
           </div>
 
           <div className="flex justify-between py-2 border-t pt-3">
-            <span>Order Date:</span>
+            <span>{TEXT.orderDate}</span>
             <span className="font-semibold">
               {new Date(order.createdAt).toLocaleDateString('en-GB')}
             </span>

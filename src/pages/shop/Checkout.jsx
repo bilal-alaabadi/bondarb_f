@@ -84,7 +84,7 @@ const Checkout = () => {
   };
 
   return (
-    <div className="p-4 md:p-6  max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
+    <div className="p-4 md:p-12  max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
       {/* Billing Details */}
       <div className="flex-1 pt-20 ">
         <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Billing Details</h1>

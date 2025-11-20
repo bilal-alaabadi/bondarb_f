@@ -227,17 +227,49 @@ const DefaultLayout = ({ product, flip, lang }) => {
   );
 };
 
-const TrendingProducts = ({ slot = 1, flip = false }) => {
-  const lang = useSelector((s) => s.locale.lang || "en");
+/* ====== Main Component (with onLoadingChange) ====== */
+const TrendingProducts = ({ slot = 1, flip = false, onLoadingChange }) => {
+  const lang = useSelector((s) => s.locale?.lang || "en");
 
   const {
     data: { products = [] } = {},
     error,
-    isLoading,
+    isLoading,   // أول تحميل
+    isFetching,  // يشمل أي refetch لاحق أيضاً
   } = useFetchAllProductsQuery({ homeIndex: slot, page: 1, limit: 1, lang });
 
-  if (isLoading) return <div className="text-center py-12 text-gray-600">{lang === "ar" ? "جاري التحميل..." : "Loading…"}</div>;
-  if (error) return <div className="text-center py-12 text-red-500">{lang === "ar" ? "حدث خطأ أثناء جلب البيانات." : "Failed to load data."}</div>;
+  // إشعار الصفحة الرئيسية بحالة التحميل (آمن ضد التكرار)
+  const loadingFlagRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isFetching && !loadingFlagRef.current) {
+      loadingFlagRef.current = true;
+      onLoadingChange?.(true);
+    }
+    if (!isFetching && loadingFlagRef.current) {
+      loadingFlagRef.current = false;
+      onLoadingChange?.(false);
+    }
+  }, [isFetching, onLoadingChange]);
+
+  // تنظيف عند إلغاء التركيب (unmount) في حال بقيت حالة التحميل مرفوعة
+  React.useEffect(() => {
+    return () => {
+      if (loadingFlagRef.current) {
+        onLoadingChange?.(false);
+        loadingFlagRef.current = false;
+      }
+    };
+  }, [onLoadingChange]);
+
+  // Placeholder بسيط أثناء التحميل (حتى لا يقفز ال layout) — الـOverlay العام سيغطي الشاشة
+  if (isFetching || isLoading) {
+    return <div className="py-12 text-center text-gray-500 min-h-[200px]">{lang === "ar" ? "جاري التحميل…" : "Loading…"}</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-12 text-red-500">{lang === "ar" ? "حدث خطأ أثناء جلب البيانات." : "Failed to load data."}</div>;
+  }
 
   const product = products[0];
   if (!product) return null;
