@@ -1,3 +1,4 @@
+// CartModal.jsx
 import React, { useEffect } from "react";
 import OrderSummary from "./OrderSummary";
 
@@ -12,14 +13,12 @@ const CartModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100]">
-      {/* Overlay */}
       <button
         aria-label="Close"
         onClick={onClose}
         className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
       />
 
-      {/* Drawer */}
       <aside className="absolute right-0 top-0 h-full bg-white shadow-2xl w-[90%] max-w-[420px] md:w-[480px] flex flex-col">
         <Header onClose={onClose} />
         <OrderSummary onClose={onClose} />

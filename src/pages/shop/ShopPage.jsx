@@ -1,6 +1,8 @@
 // src/pages/shop/ShopPage.jsx
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
+
 import ProductCards from "./ProductCards";
 import ShopFiltering from "./ShopFiltering";
 import { useFetchAllProductsQuery } from "../../redux/features/products/productsApi";
@@ -20,6 +22,7 @@ const filters = {
 
 const ShopPage = () => {
   const lang = useSelector((s) => s.locale.lang || "en");
+  const location = useLocation();
 
   const [filtersState, setFiltersState] = useState({ category: "All" });
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,6 +30,16 @@ const ShopPage = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   const { category } = filtersState;
+
+  // ✅ ربط الفلاتر مع الـ URL: /shop?category=Men’s%20Washes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlCategory = params.get("category");
+
+    if (urlCategory && filters.categories.includes(urlCategory)) {
+      setFiltersState({ category: urlCategory });
+    }
+  }, [location.search]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -40,7 +53,7 @@ const ShopPage = () => {
     category: category !== "All" ? category : undefined,
     page: currentPage,
     limit: ProductsPerPage,
-    lang, // <-- مهم جداً ليرجع الوصف/الاسم مترجمين
+    lang,
   });
 
   const clearFilters = () => setFiltersState({ category: "All" });
@@ -49,8 +62,19 @@ const ShopPage = () => {
     if (pageNumber > 0 && pageNumber <= totalPages) setCurrentPage(pageNumber);
   };
 
-  if (isLoading) return <div className="text-center py-12">{lang === "ar" ? "جاري تحميل المنتجات..." : "Loading products…"}</div>;
-  if (error) return <div className="text-center py-12 text-red-500">{lang === "ar" ? "فشل في جلب المنتجات." : "Failed to load products."}</div>;
+  if (isLoading)
+    return (
+      <div className="text-center py-12">
+        {lang === "ar" ? "جاري تحميل المنتجات..." : "Loading products…"}
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="text-center py-12 text-red-500">
+        {lang === "ar" ? "فشل في جلب المنتجات." : "Failed to load products."}
+      </div>
+    );
 
   const startProduct = (currentPage - 1) * ProductsPerPage + 1;
   const endProduct = Math.min(startProduct + ProductsPerPage - 1, totalProducts);
@@ -58,7 +82,6 @@ const ShopPage = () => {
   return (
     <section className="py-8 pt-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-
         {/* Top toolbar (mobile toggle + count) */}
         <div className="mb-6 flex items-center justify-between">
           <button
@@ -98,7 +121,9 @@ const ShopPage = () => {
             <div className="hidden md:flex items-center justify-between mb-4">
               <h3 className="text-sm text-gray-600">
                 {lang === "ar" ? "إظهار" : "Showing"}{" "}
-                <span className="font-medium">{startProduct}-{endProduct}</span>{" "}
+                <span className="font-medium">
+                  {totalProducts === 0 ? 0 : startProduct}-{endProduct}
+                </span>{" "}
                 {lang === "ar" ? "من" : "of"}{" "}
                 <span className="font-medium">{totalProducts}</span>{" "}
                 {lang === "ar" ? "منتج" : "products"}
@@ -113,7 +138,8 @@ const ShopPage = () => {
                 {totalPages > 1 && (
                   <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-sm text-gray-600">
-                      {lang === "ar" ? "الصفحة" : "Page"} {currentPage} {lang === "ar" ? "من" : "of"} {totalPages}
+                      {lang === "ar" ? "الصفحة" : "Page"} {currentPage}{" "}
+                      {lang === "ar" ? "من" : "of"} {totalPages}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -162,7 +188,9 @@ const ShopPage = () => {
             ) : (
               <div className="rounded-lg border bg-white p-10 text-center">
                 <p className="text-gray-600">
-                  {lang === "ar" ? "لا توجد منتجات مطابقة للفلاتر المحددة." : "No products match the selected filters."}
+                  {lang === "ar"
+                    ? "لا توجد منتجات مطابقة للفلاتر المحددة."
+                    : "No products match the selected filters."}
                 </p>
                 <button
                   onClick={clearFilters}

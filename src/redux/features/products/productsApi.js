@@ -2,14 +2,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getBaseUrl } from "../../../utils/baseURL";
 
-/**
- * ملاحظات هامة:
- * - كل الاستعلامات تدعم تمرير وسيطة اللغة `lang` وستُلحق تلقائياً بـ query string.
- * - fetchProductById/fetchRelatedProducts يدعمان تمريل "id" كسلسلة فقط أو كائن { id, lang } للتوافق.
- * - نحاول توحيد الصور لتكون دائمًا مصفوفة Array لتفادي الأعطال في الواجهة.
- * - نُعيد reviews مع منتج واحد إن كانت موجودة من الـ API.
- */
-
 const productsApi = createApi({
   reducerPath: "productsApi",
   baseQuery: fetchBaseQuery({
@@ -18,9 +10,7 @@ const productsApi = createApi({
   }),
   tagTypes: ["Product", "ProductList"],
   endpoints: (builder) => ({
-    /* ======================== جميع المنتجات ======================== */
     fetchAllProducts: builder.query({
-      // يدعم args اختياري مع قيم افتراضية
       query: (args = {}) => {
         const {
           category,
@@ -32,6 +22,7 @@ const productsApi = createApi({
           page = 1,
           limit = 10,
           lang = "en",
+          size,
         } = args;
 
         const params = new URLSearchParams({
@@ -42,6 +33,7 @@ const productsApi = createApi({
         });
 
         if (category && category !== "All") params.set("category", category);
+        if (size) params.set("size", String(size));
         if (minPrice) params.set("minPrice", String(minPrice));
         if (maxPrice) params.set("maxPrice", String(maxPrice));
         if (search) params.set("search", String(search));
@@ -51,48 +43,34 @@ const productsApi = createApi({
         return `/?${params.toString()}`;
       },
       transformResponse: (response) => {
-  const list = Array.isArray(response?.products) ? response.products : [];
+        const list = Array.isArray(response?.products) ? response.products : [];
 
-  const normalized = list.map((p) => {
-    const name =
-      p?.name ??
-      p?.name_ar ??
-      p?.name_en ??
-      ""; // أولوية: name ثم العربي ثم الإنجليزي
+        const normalized = list.map((p) => {
+          const name = p?.name ?? p?.name_ar ?? p?.name_en ?? "";
+          const description = p?.description ?? p?.description_ar ?? p?.description_en ?? "";
+          const category = p?.category ?? p?.category_ar ?? p?.category_en ?? "";
+          const image = Array.isArray(p?.image) ? p.image : p?.image ? [p.image] : [];
+          const variants = Array.isArray(p?.variants) ? p.variants : [];
 
-    const description =
-      p?.description ??
-      p?.description_ar ??
-      p?.description_en ??
-      "";
+          return {
+            ...p,
+            name,
+            description,
+            category,
+            image,
+            variants,
+            size: p?.size ?? "",
+            homeIndex: p?.homeIndex ?? "",
+            oldPrice: p?.oldPrice ?? "",
+          };
+        });
 
-    const category =
-      p?.category ??
-      p?.category_ar ??
-      p?.category_en ??
-      "";
-
-    const image = Array.isArray(p?.image) ? p.image : p?.image ? [p.image] : [];
-
-    return {
-      ...p,
-      name,
-      description,
-      category,
-      image,
-      size: p?.size ?? "",
-      homeIndex: p?.homeIndex ?? "",
-      oldPrice: p?.oldPrice ?? "",
-    };
-  });
-
-  return {
-    products: normalized,
-    totalPages: response?.totalPages ?? 1,
-    totalProducts: response?.totalProducts ?? normalized.length,
-  };
-},
-
+        return {
+          products: normalized,
+          totalPages: response?.totalPages ?? 1,
+          totalProducts: response?.totalProducts ?? normalized.length,
+        };
+      },
       providesTags: (result) =>
         result
           ? [
@@ -102,63 +80,60 @@ const productsApi = createApi({
           : ["ProductList"],
     }),
 
-    /* ======================== منتج واحد ======================== */
-    /* ======================== منتج واحد ======================== */
-fetchProductById: builder.query({
-  // يدعم: fetchProductById(id) أو fetchProductById({ id, lang })
-  query: (arg) => {
-    let id;
-    let lang = "en";
-    if (typeof arg === "string" || typeof arg === "number") {
-      id = arg;
-    } else if (arg && typeof arg === "object") {
-      id = arg.id;
-      lang = arg.lang || "en";
-    }
-    return {
-      url: `/product/${id}`,
-      params: { lang },
-    };
-  },
-  transformResponse: (response) => {
-    const product = response?.product ?? response ?? {};
-    return {
-      _id: product._id,
-      // الحقول الأساسية
-      name: product.name,
-      category: product.category,
-      size: product.size || "",
-      price: product.price,
-      oldPrice: product.oldPrice || "",
-      description: product.description,
-      image: Array.isArray(product.image)
-        ? product.image
-        : product.image
-        ? [product.image]
-        : [],
-      author: product.author,
-      homeIndex: product.homeIndex ?? "",
-      // ✅ نضيف الحقول الثنائية (حتى تظهر في التعديل)
-      name_en: product.name_en || "",
-      name_ar: product.name_ar || "",
-      description_en: product.description_en || "",
-      description_ar: product.description_ar || "",
-      category_en: product.category_en || "",
-      category_ar: product.category_ar || "",
-      // المراجعات
-      reviews: Array.isArray(response?.reviews) ? response.reviews : [],
-    };
-  },
-  providesTags: (result, error, arg) => {
-    const id = typeof arg === "object" ? arg.id : arg;
-    return [{ type: "Product", id }];
-  },
-}),
+    fetchProductById: builder.query({
+      query: (arg) => {
+        let id;
+        let lang = "en";
+        if (typeof arg === "string" || typeof arg === "number") {
+          id = arg;
+        } else if (arg && typeof arg === "object") {
+          id = arg.id;
+          lang = arg.lang || "en";
+        }
+        return {
+          url: `/product/${id}`,
+          params: { lang },
+        };
+      },
+      transformResponse: (response) => {
+        const product = response?.product ?? response ?? {};
 
+        const name = product?.name ?? product?.name_ar ?? product?.name_en ?? "";
+        const description =
+          product?.description ?? product?.description_ar ?? product?.description_en ?? "";
+        const category =
+          product?.category ?? product?.category_ar ?? product?.category_en ?? "";
 
-    /* ======================== منتجات مرتبطة ======================== */
+        return {
+          _id: product._id,
+          name,
+          category,
+          size: product.size || "",
+          price: product.price,
+          oldPrice: product.oldPrice || "",
+          description,
+          image: Array.isArray(product.image) ? product.image : product.image ? [product.image] : [],
+          variants: Array.isArray(product.variants) ? product.variants : [],
+          author: product.author,
+          homeIndex: product.homeIndex ?? "",
+
+          name_en: product.name_en || "",
+          name_ar: product.name_ar || "",
+          description_en: product.description_en || "",
+          description_ar: product.description_ar || "",
+          category_en: product.category_en || "",
+          category_ar: product.category_ar || "",
+
+          reviews: Array.isArray(response?.reviews) ? response.reviews : [],
+        };
+      },
+      providesTags: (result, error, arg) => {
+        const id = typeof arg === "object" ? arg.id : arg;
+        return [{ type: "Product", id }];
+      },
+    }),
+
     fetchRelatedProducts: builder.query({
-      // يدعم: fetchRelatedProducts(id) أو fetchRelatedProducts({ id, lang })
       query: (arg) => {
         let id;
         let lang = "en";
@@ -174,10 +149,15 @@ fetchProductById: builder.query({
         };
       },
       transformResponse: (response) => {
-        const list = Array.isArray(response) ? response : Array.isArray(response?.products) ? response.products : [];
+        const list = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.products)
+          ? response.products
+          : [];
         return list.map((p) => ({
           ...p,
           image: Array.isArray(p?.image) ? p.image : p?.image ? [p.image] : [],
+          variants: Array.isArray(p?.variants) ? p.variants : [],
         }));
       },
       providesTags: (result, error, arg) => {
@@ -186,7 +166,6 @@ fetchProductById: builder.query({
       },
     }),
 
-    /* ======================== إنشاء منتج ======================== */
     addProduct: builder.mutation({
       query: (newProduct) => ({
         url: "/create-product",
@@ -196,7 +175,6 @@ fetchProductById: builder.query({
       invalidatesTags: ["ProductList"],
     }),
 
-    /* ======================== تحديث منتج ======================== */
     updateProduct: builder.mutation({
       query: ({ id, body }) => ({
         url: `/update-product/${id}`,
@@ -210,7 +188,6 @@ fetchProductById: builder.query({
       ],
     }),
 
-    /* ======================== حذف منتج ======================== */
     deleteProduct: builder.mutation({
       query: (id) => ({
         url: `/${id}`,
@@ -222,14 +199,15 @@ fetchProductById: builder.query({
       ],
     }),
 
-    /* ======================== بحث المنتجات ======================== */
     searchProducts: builder.query({
-      query: ({ q, lang = "en" }) => `/search?q=${encodeURIComponent(q)}&lang=${lang}`,
+      query: ({ q, lang = "en" }) =>
+        `/search?q=${encodeURIComponent(q)}&lang=${encodeURIComponent(lang)}`,
       transformResponse: (response) => {
         const list = Array.isArray(response) ? response : [];
         return list.map((product) => ({
           ...product,
           image: Array.isArray(product?.image) ? product.image : product?.image ? [product.image] : [],
+          variants: Array.isArray(product?.variants) ? product.variants : [],
         }));
       },
       providesTags: (result) =>
@@ -241,15 +219,19 @@ fetchProductById: builder.query({
           : ["ProductList"],
     }),
 
-    /* ======================== الأكثر مبيعًا ======================== */
     fetchBestSellingProducts: builder.query({
       query: ({ limit = 4, lang = "en" } = {}) =>
         `/best-selling?limit=${encodeURIComponent(limit)}&lang=${encodeURIComponent(lang)}`,
       transformResponse: (response) => {
-        const list = Array.isArray(response) ? response : Array.isArray(response?.products) ? response.products : [];
+        const list = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.products)
+          ? response.products
+          : [];
         return list.map((p) => ({
           ...p,
           image: Array.isArray(p?.image) ? p.image : p?.image ? [p.image] : [],
+          variants: Array.isArray(p?.variants) ? p.variants : [],
         }));
       },
       providesTags: ["ProductList"],

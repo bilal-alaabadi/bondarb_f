@@ -1,3 +1,4 @@
+// Checkout.jsx
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RiBankCardLine } from "react-icons/ri";
@@ -48,7 +49,13 @@ const Checkout = () => {
         name: product.name,
         price: product.price,
         quantity: product.quantity,
-        image: Array.isArray(product.image) ? product.image[0] : product.image
+        image: Array.isArray(product.image) ? product.image[0] : product.image,
+
+        // ✅ مهم: التفريق بين الأحجام/الخيارات في الطلب
+        ...(product.selectedSize && { selectedSize: product.selectedSize }),
+        ...(product.selectedColor && { selectedColor: product.selectedColor }),
+        ...(product.cartKey && { cartKey: product.cartKey }),
+        ...(product.customization && { customization: product.customization }),
       })),
       customerName,
       customerPhone,
@@ -175,11 +182,26 @@ const Checkout = () => {
         <h2 className="text-lg md:text-xl font-bold mb-4 text-gray-800">Your Order</h2>
         <div className="space-y-4">
           {products.map((product) => (
-            <div key={product._id} className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-gray-700">{product.name} × {product.quantity}</span>
-              <span className="text-gray-900 font-medium">
-                {(product.price * product.quantity * exchangeRate).toFixed(2)} {currency}
-              </span>
+            <div key={product.cartKey || `${product._id}_${product.selectedSize || ''}`} className="py-2 border-b border-gray-100">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">
+                  {product.name} × {product.quantity}
+                </span>
+                <span className="text-gray-900 font-medium">
+                  {(product.price * product.quantity * exchangeRate).toFixed(2)} {currency}
+                </span>
+              </div>
+
+              {product.selectedSize && (
+                <div className="mt-1 text-sm text-gray-500">
+                  Size: <span className="font-medium">{product.selectedSize}</span>
+                </div>
+              )}
+              {product.selectedColor && (
+                <div className="mt-1 text-sm text-gray-500">
+                  Color: <span className="font-medium">{product.selectedColor}</span>
+                </div>
+              )}
             </div>
           ))}
 

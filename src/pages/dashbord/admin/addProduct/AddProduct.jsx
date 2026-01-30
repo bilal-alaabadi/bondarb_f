@@ -1,5 +1,5 @@
 // src/pages/dashbord/admin/addProduct/AddProduct.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import TextInput from './TextInput';
 import SelectInput from './SelectInput';
@@ -50,16 +50,13 @@ const AddProduct = () => {
   const { user } = useSelector((state) => state.auth);
 
   const [product, setProduct] = useState({
-    // الأساسية (للخادم)
     name: '',
     description: '',
     category: '',
-    size: '',
     price: '',
     oldPrice: '',
     homeIndex: '',
 
-    // ثنائي اللغة
     name_en: '',
     name_ar: '',
     description_en: '',
@@ -67,42 +64,75 @@ const AddProduct = () => {
   });
 
   const [image, setImage] = useState([]);
-  const [showSizeField, setShowSizeField] = useState(false);
+  const [showVariantSection, setShowVariantSection] = useState(false);
+
+  // ✅ variants state: { size, enabled, price, oldPrice }
+  const [variantsUI, setVariantsUI] = useState([]);
 
   const [addProduct, { isLoading }] = useAddProductMutation();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const needsSize = Boolean(sizeOptionsByCategory[product.category]);
-    setShowSizeField(needsSize);
-    if (!needsSize && product.size) {
-      setProduct((prev) => ({ ...prev, size: '' }));
-    }
+  const sizeOptions = useMemo(() => {
+    const opts = sizeOptionsByCategory[product.category] || [];
+    return opts.filter((o) => o.value); // remove empty option
   }, [product.category]);
+
+  useEffect(() => {
+    const hasSizes = Boolean(sizeOptionsByCategory[product.category]);
+    setShowVariantSection(hasSizes);
+
+    if (hasSizes) {
+      // Initialize variants UI from category sizes
+      setVariantsUI((prev) => {
+        const mapPrev = new Map((prev || []).map((v) => [v.size, v]));
+        return sizeOptions.map((opt) => {
+          const existing = mapPrev.get(opt.value);
+          return (
+            existing || {
+              size: opt.value,
+              enabled: false,
+              price: '',
+              oldPrice: '',
+            }
+          );
+        });
+      });
+    } else {
+      setVariantsUI([]);
+    }
+  }, [product.category, sizeOptions]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
+  const toggleVariant = (size) => {
+    setVariantsUI((prev) =>
+      prev.map((v) => (v.size === size ? { ...v, enabled: !v.enabled } : v))
+    );
+  };
+
+  const setVariantField = (size, field, value) => {
+    setVariantsUI((prev) =>
+      prev.map((v) => (v.size === size ? { ...v, [field]: value } : v))
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // نطلب العربية والإنجليزية للاسم والوصف + الحقول الأساسية
+    const baseName = product.name || product.name_en;
+    const baseDesc = product.description || product.description_en;
+
     const requiredFields = {
-      'اسم المنتج (EN - name أو name_en)': product.name || product.name_en,
-      'اسم المنتج (AR - name_ar)': product.name_ar,
-      'الوصف (EN - description أو description_en)': product.description || product.description_en,
-      'الوصف (AR - description_ar)': product.description_ar,
+      'اسم المنتج (EN)': baseName,
+      'اسم المنتج (AR)': product.name_ar,
+      'الوصف (EN)': baseDesc,
+      'الوصف (AR)': product.description_ar,
       'تصنيف المنتج': product.category,
-      'السعر': product.price,
       'الصور': image.length > 0,
     };
-
-    if (showSizeField && !product.size) {
-      alert('الرجاء اختيار الحجم لهذا التصنيف');
-      return;
-    }
 
     const missing = Object.entries(requiredFields)
       .filter(([_, v]) => !v)
@@ -113,21 +143,44 @@ const AddProduct = () => {
       return;
     }
 
-    try {
-      // نضمن تعبئة الحقول الأساسية EN إن تُركت فارغة
-      const baseName = product.name || product.name_en;
-      const baseDesc = product.description || product.description_en;
+    // ✅ Build variants payload if category has sizes
+    let variantsPayload = [];
+    if (showVariantSection) {
+      variantsPayload = (variantsUI || [])
+        .filter((v) => v.enabled)
+        .map((v) => ({
+          size: v.size,
+          price: Number(v.price),
+          oldPrice: v.oldPrice ? Number(v.oldPrice) : 0,
+        }))
+        .filter((v) => v.size && Number.isFinite(v.price) && v.price > 0);
 
+      if (variantsPayload.length === 0) {
+        alert('الرجاء اختيار حجم واحد على الأقل وإدخال سعر صحيح لكل حجم مختار');
+        return;
+      }
+    } else {
+      if (!product.price) {
+        alert('الرجاء إدخال السعر');
+        return;
+      }
+    }
+
+    try {
       const payload = {
         name: baseName,
         description: baseDesc,
         category: product.category,
-        size: product.size || undefined,
-        oldPrice: product.oldPrice || undefined,
-        price: Number(product.price),
+
+        // إذا في Variants: الباكند سيحدد price تلقائياً (لكن نرسل أيضاً price كاحتياط)
+        price: showVariantSection ? Number(variantsPayload[0]?.price || 0) : Number(product.price),
+        oldPrice: showVariantSection ? undefined : (product.oldPrice ? Number(product.oldPrice) : undefined),
+
+        variants: showVariantSection ? variantsPayload : [],
+
         image,
         author: user?._id,
-        // حقول ثنائية اللغة
+
         name_en: product.name_en || baseName,
         name_ar: product.name_ar,
         description_en: product.description_en || baseDesc,
@@ -145,7 +198,6 @@ const AddProduct = () => {
         name: '',
         description: '',
         category: '',
-        size: '',
         price: '',
         oldPrice: '',
         homeIndex: '',
@@ -155,6 +207,7 @@ const AddProduct = () => {
         description_ar: '',
       });
       setImage([]);
+      setVariantsUI([]);
       navigate('/shop');
     } catch (err) {
       console.error('Failed to submit product', err);
@@ -162,33 +215,26 @@ const AddProduct = () => {
     }
   };
 
-  const currentSizeOptions =
-    sizeOptionsByCategory[product.category] || [{ label: '—', value: '' }];
-
   return (
     <div className="container mx-auto mt-8" dir="rtl">
       <h2 className="text-2xl font-bold mb-6">إضافة منتج جديد</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* ==== الاسم (إنجليزي/عربي) ==== */}
         <TextInput
-          label="اسم المنتج (EN) — سيُستخدم أيضًا  أساسية"
+          label="اسم المنتج (EN)"
           name="name_en"
-          placeholder="مثال: ARIES / LOVESHOT / BLINDFOLD"
+          placeholder="Example: Product name"
           value={product.name_en}
           onChange={handleChange}
         />
         <TextInput
           label="اسم المنتج (AR)"
           name="name_ar"
-          placeholder="مثال: برج الحمل / لوف شوت / بليندفولد"
+          placeholder="مثال: اسم المنتج"
           value={product.name_ar}
           onChange={handleChange}
         />
 
-
-
-        {/* ==== التصنيف والحجم ==== */}
         <SelectInput
           label="تصنيف المنتج"
           name="category"
@@ -197,17 +243,6 @@ const AddProduct = () => {
           options={categories}
         />
 
-        {showSizeField && (
-          <SelectInput
-            label="الحجم"
-            name="size"
-            value={product.size}
-            onChange={handleChange}
-            options={currentSizeOptions}
-          />
-        )}
-
-        {/* ==== موضع الرئيسية ==== */}
         <SelectInput
           label="موضع الصفحة الرئيسية (1–6)"
           name="homeIndex"
@@ -216,30 +251,78 @@ const AddProduct = () => {
           options={homeIndexOptions}
         />
 
-        {/* ==== الأسعار ==== */}
-        <TextInput
-          label="السعر القديم (اختياري)"
-          name="oldPrice"
-          type="number"
-          placeholder="مثال: 7.500"
-          value={product.oldPrice}
-          onChange={handleChange}
-        />
+        {/* ✅ Variants (Sizes with different prices) */}
+        {showVariantSection ? (
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <h3 className="font-bold mb-3">الأحجام المتوفرة (ml) وأسعارها</h3>
 
-        <TextInput
-          label="السعر"
-          name="price"
-          type="number"
-          placeholder="مثال: 5.500"
-          value={product.price}
-          onChange={handleChange}
-        />
+            <div className="space-y-3">
+              {variantsUI.map((v) => (
+                <div key={v.size} className="bg-white border rounded-md p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={!!v.enabled}
+                        onChange={() => toggleVariant(v.size)}
+                      />
+                      <span className="font-semibold">{v.size}</span>
+                    </label>
+                  </div>
 
-        {/* ==== الصور ==== */}
-{/* ==== الصور ==== */}
-<UploadImage name="image" id="image" uploaded={image} setImage={setImage} />
+                  {v.enabled && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">السعر</label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          className="w-full p-2 border rounded-md"
+                          value={v.price}
+                          onChange={(e) => setVariantField(v.size, 'price', e.target.value)}
+                          placeholder="مثال: 5.500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">السعر القديم (اختياري)</label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          className="w-full p-2 border rounded-md"
+                          value={v.oldPrice}
+                          onChange={(e) => setVariantField(v.size, 'oldPrice', e.target.value)}
+                          placeholder="مثال: 7.500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <TextInput
+              label="السعر القديم (اختياري)"
+              name="oldPrice"
+              type="number"
+              placeholder="مثال: 7.500"
+              value={product.oldPrice}
+              onChange={handleChange}
+            />
+            <TextInput
+              label="السعر"
+              name="price"
+              type="number"
+              placeholder="مثال: 5.500"
+              value={product.price}
+              onChange={handleChange}
+            />
+          </>
+        )}
 
-        {/* ==== الوصف (إنجليزي/عربي) ==== */}
+        <UploadImage name="image" id="image" uploaded={image} setImage={setImage} />
+
         <div>
           <label htmlFor="description_en" className="block text-sm font-medium text-gray-700">
             وصف المنتج (EN)
@@ -269,9 +352,6 @@ const AddProduct = () => {
             rows={4}
           />
         </div>
-
-        {/* (اختياري) حقل التوافق — يملأ تلقائيًا من (وصف EN) إن تركته فارغًا */}
-
 
         <div>
           <button type="submit" className="add-product-btn" disabled={isLoading}>

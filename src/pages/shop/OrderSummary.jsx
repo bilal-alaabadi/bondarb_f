@@ -1,3 +1,4 @@
+// OrderSummary.jsx
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
@@ -8,7 +9,6 @@ const OrderSummary = ({ onClose }) => {
   const { products, totalPrice, shippingFee, country } = useSelector((s) => s.cart);
   const lang = useSelector((s) => s.locale.lang);
 
-  // ترجمات بسيطة
   const t = (key) => {
     const en = {
       empty: "Your cart is empty",
@@ -20,11 +20,9 @@ const OrderSummary = ({ onClose }) => {
       total: "Total",
       checkout: "Checkout",
       clear: "Clear Cart",
-      unit: "Unit",
-      qty: "Qty",
       currencyAED: "AED",
       currencyOMR: "OMR",
-      cart: "Cart",
+      size: "Size",
     };
     const ar = {
       empty: "سلتك فارغة",
@@ -36,31 +34,28 @@ const OrderSummary = ({ onClose }) => {
       total: "الإجمالي",
       checkout: "الدفع",
       clear: "إفراغ السلة",
-      unit: "السعر",
-      qty: "الكمية",
       currencyAED: "درهم",
       currencyOMR: "ريال",
-      cart: "السلة",
+      size: "الحجم",
     };
     return (lang === "ar" ? ar : en)[key];
   };
 
   const usingAED = country === "الإمارات";
   const currency = usingAED ? t("currencyAED") : t("currencyOMR");
-  const rate = usingAED ? 9.5 : 1; // التحويل التقريبي الذي تستخدمه
+  const rate = usingAED ? 9.5 : 1;
   const fmt = (n) => (n * rate).toFixed(2);
 
   const subtotal = fmt(totalPrice);
   const shipping = fmt(shippingFee);
   const grandTotal = (Number(subtotal) + Number(shipping)).toFixed(2);
 
-  const inc = (id) => dispatch(updateQuantity({ id, type: "increment" }));
-  const dec = (id) => dispatch(updateQuantity({ id, type: "decrement" }));
-  const remove = (id) => dispatch(removeFromCart({ id }));
+  const inc = (key) => dispatch(updateQuantity({ id: key, type: "increment" }));
+  const dec = (key) => dispatch(updateQuantity({ id: key, type: "decrement" }));
+  const remove = (key) => dispatch(removeFromCart({ id: key }));
 
   return (
     <div className="flex h-full flex-col bg-white" dir={lang === "ar" ? "rtl" : "ltr"}>
-      {/* Items */}
       <div className="flex-1 overflow-y-auto px-4">
         {products.length === 0 ? (
           <div className="py-12 text-center text-gray-600">{t("empty")}</div>
@@ -68,9 +63,9 @@ const OrderSummary = ({ onClose }) => {
           products.map((item) => {
             const unit = item.price;
             const rowTotal = fmt(unit * item.quantity);
+
             return (
-              <div key={item._id} className="grid grid-cols-12 items-start gap-3 border-b py-5">
-                {/* Image */}
+              <div key={item.cartKey} className="grid grid-cols-12 items-start gap-3 border-b py-5">
                 <div className="col-span-3">
                   <div className="h-20 w-20 overflow-hidden border bg-white">
                     <img
@@ -81,31 +76,33 @@ const OrderSummary = ({ onClose }) => {
                   </div>
                 </div>
 
-                {/* Info */}
                 <div className="col-span-6">
                   <div className="text-sm font-semibold">{item.name}</div>
 
-                  {/* السعر للوحدة */}
+                  {item.selectedSize && (
+                    <div className="mt-1 text-xs text-gray-600">
+                      {t("size")}: <span className="font-medium">{item.selectedSize}</span>
+                    </div>
+                  )}
+
                   <div className="mt-1 text-sm text-gray-600">
                     {fmt(unit)} {currency}
                   </div>
 
-                  {/* التحكم بالكمية */}
                   <div className="mt-3 inline-flex items-center overflow-hidden rounded border">
-                    <button onClick={() => dec(item._id)} className="px-3 py-2 text-lg leading-none">−</button>
+                    <button onClick={() => dec(item.cartKey)} className="px-3 py-2 text-lg leading-none">−</button>
                     <div className="w-10 text-center text-sm">{item.quantity}</div>
-                    <button onClick={() => inc(item._id)} className="px-3 py-2 text-lg leading-none">+</button>
+                    <button onClick={() => inc(item.cartKey)} className="px-3 py-2 text-lg leading-none">+</button>
                   </div>
 
                   <button
-                    onClick={() => remove(item._id)}
+                    onClick={() => remove(item.cartKey)}
                     className="ms-3 inline-flex items-center text-gray-600 hover:text-red-600"
                   >
                     {t("remove")}
                   </button>
                 </div>
 
-                {/* Total per row */}
                 <div className="col-span-3 text-right text-base">
                   {rowTotal} {currency}
                 </div>
@@ -115,7 +112,6 @@ const OrderSummary = ({ onClose }) => {
         )}
       </div>
 
-      {/* Footer */}
       <div className="sticky bottom-0 border-t bg-white px-4 pt-4 pb-5">
         <div className="mb-1 flex items-center justify-between text-sm text-gray-700">
           <span>{t("subtotal")}</span>

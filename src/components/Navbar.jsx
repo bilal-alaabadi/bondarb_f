@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Search, ShoppingBag, Menu, X as CloseIcon, User } from "lucide-react";
 import CartModal from "../pages/shop/CartModal";
 import avatarImg from "../assets/avatar.png";
-import logo from "../assets/LOGO_Bond Var1.png";
+import logo from "../assets/ChatGPT Image Jan 29, 2026, 11_48_59 PM.png";
 import { useLogoutUserMutation } from "../redux/features/auth/authApi";
 import { logout } from "../redux/features/auth/authSlice";
 import { toggleLang } from "../redux/features/locale/localeSlice";
@@ -75,16 +75,19 @@ const Navbar = () => {
           </nav>
 
           {/* الشعار */}
-          <div className="absolute left-1/2 -translate-x-1/2">
-            <Link to="/" aria-label="Home">
-              <img
-                src={logo}
-                alt="BOND"
-                className={`${scrolled ? "h-8" : "h-10"} w-auto object-contain select-none transition-all duration-300`}
-                draggable="false"
-              />
-            </Link>
-          </div>
+<div className="absolute left-1/2 -translate-x-1/2">
+  <Link to="/" aria-label="Home">
+    <img
+      src={logo}
+      alt="BOND"
+      className={`${
+        scrolled ? "h-32" : "h-32"
+      } w-auto object-contain select-none transition-all duration-300`}
+      draggable="false"
+    />
+  </Link>
+</div>
+
 
           {/* أيقونات اليمين */}
           <div className="ml-auto flex items-center gap-4 sm:gap-6 text-[#0E161B]">
