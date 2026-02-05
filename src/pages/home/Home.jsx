@@ -6,6 +6,7 @@ import HeroSection from "./HeroSection";
 import DealsSection from "./DealsSection";
 import One from "./One";
 import PromoBanner from "./PromoBanner";
+import FeaturedProducts from "../shop/FeaturedProducts.jsx"; // سننشئ هذا المكون
 
 // ✅ استدعِ صورتك بالمسار الذي ذكرتَه
 import timings from "../../assets/LOGO_Bond Var1.png";
@@ -64,6 +65,9 @@ const Home = () => {
       {/* المنتج الرابع بشكل خاص (مثل الصورة) */}
       <TrendingWithLoading slot={4} />
       <DealsSection />
+
+      {/* أول 4 منتجات بعد DealsSection */}
+      <FeaturedProducts onLoadingChange={handleLoadingChange} />
 
       <TrendingWithLoading slot={5} flip={true} />
       <TrendingWithLoading slot={6} flip={false} />

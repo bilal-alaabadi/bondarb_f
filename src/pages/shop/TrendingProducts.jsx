@@ -1,3 +1,4 @@
+
 // src/pages/shop/TrendingProducts.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';

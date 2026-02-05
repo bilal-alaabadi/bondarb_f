@@ -5,6 +5,8 @@ import { RiBankCardLine } from "react-icons/ri";
 import { getBaseUrl } from '../../utils/baseURL';
 import { useNavigate } from 'react-router-dom';
 
+const FREE_SHIPPING_THRESHOLD = 14; // 🔹 حد الشحن المجاني (OMR)
+
 const Checkout = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -16,12 +18,20 @@ const Checkout = () => {
 
   const { products, totalPrice, country } = useSelector((state) => state.cart);
 
-  // Shipping and currency by country
-  const baseShippingFee = country === 'الإمارات' ? 4 : 2;
-  const currency = country === 'الإمارات' ? 'AED' : 'OMR';
-  const exchangeRate = country === 'الإمارات' ? 9.5 : 1;
-  const shippingFee = baseShippingFee * exchangeRate;
+  // ========================= Shipping + Currency =========================
+  const usingAED = country === 'الإمارات';
+  const currency = usingAED ? 'AED' : 'OMR';
+  const exchangeRate = usingAED ? 9.5 : 1;
 
+  const baseShippingFee = usingAED ? 4 : 2;
+  const isFreeShipping = totalPrice >= FREE_SHIPPING_THRESHOLD;
+  const effectiveShippingBase = isFreeShipping ? 0 : baseShippingFee;
+
+  const shippingFee = effectiveShippingBase * exchangeRate;
+  const subtotal = totalPrice * exchangeRate;
+  const grandTotal = (totalPrice + effectiveShippingBase) * exchangeRate;
+
+  // ========================= Guards =========================
   useEffect(() => {
     if (products.length === 0) {
       setError("Your cart is empty. Please add products before proceeding to checkout.");
@@ -30,6 +40,7 @@ const Checkout = () => {
     }
   }, [products]);
 
+  // ========================= Payment =========================
   const makePayment = async (e) => {
     e.preventDefault();
 
@@ -50,8 +61,8 @@ const Checkout = () => {
         price: product.price,
         quantity: product.quantity,
         image: Array.isArray(product.image) ? product.image[0] : product.image,
+  selectedSize: product.selectedSize || product.size || '',
 
-        // ✅ مهم: التفريق بين الأحجام/الخيارات في الطلب
         ...(product.selectedSize && { selectedSize: product.selectedSize }),
         ...(product.selectedColor && { selectedColor: product.selectedColor }),
         ...(product.cartKey && { cartKey: product.cartKey }),
@@ -62,15 +73,19 @@ const Checkout = () => {
       country,
       wilayat,
       description,
-      email
+      email,
+      freeShipping: isFreeShipping, // 🔹 اختياري للتتبع
     };
 
     try {
-      const response = await fetch(`${getBaseUrl()}/api/orders/create-checkout-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+      const response = await fetch(
+        `${getBaseUrl()}/api/orders/create-checkout-session`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -90,10 +105,11 @@ const Checkout = () => {
     }
   };
 
+  // ========================= UI =========================
   return (
-    <div className="p-4 md:p-12  max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
-      {/* Billing Details */}
-      <div className="flex-1 pt-20 ">
+    <div className="p-4 md:p-12 max-w-6xl mx-auto flex flex-col md:flex-row gap-8">
+      {/* ================= Billing Details ================= */}
+      <div className="flex-1 pt-20">
         <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Billing Details</h1>
         {error && <div className="text-red-500 mb-4">{error}</div>}
 
@@ -129,7 +145,6 @@ const Checkout = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="name@example.com"
               />
             </div>
 
@@ -151,7 +166,6 @@ const Checkout = () => {
                 value={wilayat}
                 onChange={(e) => setWilayat(e.target.value)}
                 required
-                placeholder="Please enter the full address"
               />
             </div>
 
@@ -161,7 +175,6 @@ const Checkout = () => {
                 className="w-full p-2 border rounded-md"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Any notes or extra details about the order"
                 rows="3"
               />
             </div>
@@ -177,61 +190,56 @@ const Checkout = () => {
         </form>
       </div>
 
-      {/* Order Summary */}
-      <div className=" w-full md:w-1/3 p-4 md:p-6 bg-white rounded-lg shadow-lg border border-gray-200">
-        <h2 className="text-lg md:text-xl font-bold mb-4 text-gray-800">Your Order</h2>
-        <div className="space-y-4">
-          {products.map((product) => (
-            <div key={product.cartKey || `${product._id}_${product.selectedSize || ''}`} className="py-2 border-b border-gray-100">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">
-                  {product.name} × {product.quantity}
-                </span>
-                <span className="text-gray-900 font-medium">
-                  {(product.price * product.quantity * exchangeRate).toFixed(2)} {currency}
-                </span>
-              </div>
+      {/* ================= Order Summary ================= */}
+      <div className="w-full md:w-1/3 p-4 md:p-6 bg-white rounded-lg shadow-lg border">
+        <h2 className="text-lg md:text-xl font-bold mb-4">Your Order</h2>
 
-              {product.selectedSize && (
-                <div className="mt-1 text-sm text-gray-500">
-                  Size: <span className="font-medium">{product.selectedSize}</span>
-                </div>
-              )}
-              {product.selectedColor && (
-                <div className="mt-1 text-sm text-gray-500">
-                  Color: <span className="font-medium">{product.selectedColor}</span>
-                </div>
-              )}
+        {products.map((product) => (
+          <div
+            key={product.cartKey}
+            className="py-2 border-b border-gray-100"
+          >
+            <div className="flex justify-between">
+              <span>{product.name} × {product.quantity}</span>
+              <span>
+                {(product.price * product.quantity * exchangeRate).toFixed(2)} {currency}
+              </span>
             </div>
-          ))}
 
-          <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-            <span className="text-gray-800">Shipping Fee</span>
-            <p className="text-gray-900">{shippingFee.toFixed(2)} {currency}</p>
+            {product.selectedSize && (
+              <div className="text-sm text-gray-500">
+                Size: <span className="font-medium">{product.selectedSize}</span>
+              </div>
+            )}
           </div>
+        ))}
 
-          <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-            <span className="text-gray-800 font-semibold">Total</span>
-            <p className="text-gray-900 font-bold">
-              {((totalPrice + baseShippingFee) * exchangeRate).toFixed(2)} {currency}
-            </p>
-          </div>
+        <div className="flex justify-between pt-3">
+          <span>Subtotal</span>
+          <span>{subtotal.toFixed(2)} {currency}</span>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Thawani Payment</h3>
+        <div className="flex justify-between pt-2">
+          <span>Shipping</span>
+          <span>
+            {isFreeShipping ? "Free" : `${shippingFee.toFixed(2)} ${currency}`}
+          </span>
+        </div>
+
+        <div className="flex justify-between pt-4 font-bold border-t mt-2">
+          <span>Total</span>
+          <span>{grandTotal.toFixed(2)} {currency}</span>
+        </div>
+
+        <div className="mt-6 pt-6 border-t">
+          <h3 className="text-lg font-semibold mb-4">Thawani Payment</h3>
           <button
             onClick={makePayment}
-            className="w-full bg-[#7A2432] text-white px-4 py-2 rounded-md transition-colors duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
-            disabled={products.length === 0}
+            className="w-full bg-[#7A2432] text-white px-4 py-2 rounded-md flex items-center justify-center gap-2"
           >
             <RiBankCardLine className="text-xl" />
-            <span>Pay with Thawani</span>
+            Pay with Thawani
           </button>
-          <p className="mt-4 text-sm text-gray-600">
-            Your personal data will be used to process your order, support your experience on this site,
-            and for other purposes described in our <a className="text-blue-600 hover:underline">Privacy Policy</a>.
-          </p>
         </div>
       </div>
     </div>

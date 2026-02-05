@@ -1,96 +1,89 @@
-// ========================= UpdateProduct.jsx (Final - Same as AddProduct) =========================
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  useFetchProductByIdQuery,
-  useUpdateProductMutation,
-} from '../../../../redux/features/products/productsApi';
 import { useSelector, useDispatch } from 'react-redux';
+
 import TextInput from '../addProduct/TextInput';
 import SelectInput from '../addProduct/SelectInput';
 import UpdateImag from '../manageProduct/UpdateImag';
-import productsApi from '../../../../redux/features/products/productsApi'; // ✅
 
-const categories = [
-  { label: 'اختر تصنيف', value: '' },
-  { label: 'Men’s Washes', value: 'Men’s Washes' },
-  { label: 'Women’s Washes', value: 'Women’s Washes' },
-  { label: 'Liquid Bath Soap', value: 'Liquid Bath Soap' },
-  { label: 'Deodorant', value: 'Deodorant' },
-  { label: 'Body Wet Wipes', value: 'Body Wet Wipes' },
-  { label: 'Body Powder', value: 'Body Powder' },
-  { label: 'Body Moisturizer', value: 'Body Moisturizer' },
-];
+import productsApi, {
+  useFetchProductByIdQuery,
+  useUpdateProductMutation,
+} from '../../../../redux/features/products/productsApi';
 
+// ========================= Sizes by Category (SAME LOGIC AS ADD) =========================
 const sizeOptionsByCategory = {
-  'Men’s Washes': [
-    { label: 'Choose size', value: '' },
-    { label: '130 ml', value: '130 ml' },
-    { label: '45 ml', value: '45 ml' },
-    { label: '10 ml (Box / All Scents)', value: '10 ml' },
-  ],
-  'Women’s Washes': [
-    { label: 'Choose size', value: '' },
-    { label: '130 ml', value: '130 ml' },
-    { label: '45 ml', value: '45 ml' },
-  ],
-  'Liquid Bath Soap': [
-    { label: 'Choose size', value: '' },
-    { label: '500 ml', value: '500 ml' },
-  ],
-};
-
-const homeIndexOptions = [
-  { label: 'بدون موضع في الرئيسية', value: '' },
-  { label: '1', value: '1' },
-  { label: '2', value: '2' },
-  { label: '3', value: '3' },
-  { label: '4', value: '4' },
-  { label: '5', value: '5' },
-  { label: '6', value: '6' },
-];
-
-// ✅ نفس الصفحة: فقط ضمان ظهور الأحجام من قاعدة البيانات حتى لو ما كانت ضمن sizeOptionsByCategory
-const getSizeOptions = (category, dbVariants = [], currentUI = []) => {
-  const predefined = sizeOptionsByCategory[category];
-  if (predefined) return predefined.filter((o) => o.value);
-
-  const fromDb = Array.isArray(dbVariants) ? dbVariants : [];
-  const sizes = fromDb
-    .map((v) => String(v?.size || '').trim())
-    .filter(Boolean);
-
-  const uniq = Array.from(new Set(sizes));
-  if (uniq.length > 0) return uniq.map((s) => ({ label: s, value: s }));
-
-  const fromUI = Array.isArray(currentUI) ? currentUI : [];
-  const uiSizes = fromUI.map((v) => String(v?.size || '').trim()).filter(Boolean);
-  const uniqUI = Array.from(new Set(uiSizes));
-  return uniqUI.map((s) => ({ label: s, value: s }));
+  "Men’s Washes": ["130 ml", "35 ml", "500 ml", "10 ml"],
+  "Women’s Washes": ["130 ml", "35 ml"],
+  "Liquid Bath Soap": ["500 ml"],
 };
 
 const UpdateProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch(); // ✅
-  const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
 
+  const lang = useSelector((s) => s.locale.lang);
+  const isRTL = lang === 'ar';
+  const { user } = useSelector((s) => s.auth);
+
+  // ========================= UI Options =========================
+  const categories =
+    lang === 'ar'
+      ? [
+          { label: 'اختر تصنيف', value: '' },
+          { label: 'Men’s Washes', value: 'Men’s Washes' },
+          { label: 'Women’s Washes', value: 'Women’s Washes' },
+          { label: 'Liquid Bath Soap', value: 'Liquid Bath Soap' },
+          { label: 'Deodorant', value: 'Deodorant' },
+          { label: 'Body Wet Wipes', value: 'Body Wet Wipes' },
+          { label: 'Body Powder', value: 'Body Powder' },
+          { label: 'Body Moisturizer', value: 'Body Moisturizer' },
+        ]
+      : [
+          { label: 'Choose category', value: '' },
+          { label: 'Men’s Washes', value: 'Men’s Washes' },
+          { label: 'Women’s Washes', value: 'Women’s Washes' },
+          { label: 'Liquid Bath Soap', value: 'Liquid Bath Soap' },
+          { label: 'Deodorant', value: 'Deodorant' },
+          { label: 'Body Wet Wipes', value: 'Body Wet Wipes' },
+          { label: 'Body Powder', value: 'Body Powder' },
+          { label: 'Body Moisturizer', value: 'Body Moisturizer' },
+        ];
+
+  const homeIndexOptions =
+    lang === 'ar'
+      ? [
+          { label: 'بدون موضع في الرئيسية', value: '' },
+          { label: '1', value: '1' },
+          { label: '2', value: '2' },
+          { label: '3', value: '3' },
+          { label: '4', value: '4' },
+          { label: '5', value: '5' },
+          { label: '6', value: '6' },
+        ]
+      : [
+          { label: 'No home position', value: '' },
+          { label: '1', value: '1' },
+          { label: '2', value: '2' },
+          { label: '3', value: '3' },
+          { label: '4', value: '4' },
+          { label: '5', value: '5' },
+          { label: '6', value: '6' },
+        ];
+
+  // ========================= Fetch Product =========================
   const {
     data: productData,
     isLoading: isFetching,
     error: fetchError,
     refetch,
-  } = useFetchProductByIdQuery(
-    { id, lang: 'raw' },
-    {
-      refetchOnMountOrArgChange: true,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
-    }
-  );
+  } = useFetchProductByIdQuery({ id, lang: 'raw' });
 
-  const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
+  const [updateProduct, { isLoading: isUpdating }] =
+    useUpdateProductMutation();
 
+  // ========================= State =========================
   const [product, setProduct] = useState({
     name: '',
     description: '',
@@ -100,99 +93,60 @@ const UpdateProduct = () => {
     homeIndex: '',
     inStock: true,
     image: [],
-
     name_en: '',
     name_ar: '',
     description_en: '',
     description_ar: '',
   });
 
-  const [newImages, setNewImages] = useState([]); // Files[]
-  const [keepImages, setKeepImages] = useState([]); // string[]
-
+  const [newImages, setNewImages] = useState([]);
+  const [keepImages, setKeepImages] = useState([]);
   const [showVariantSection, setShowVariantSection] = useState(false);
-  const [variantsUI, setVariantsUI] = useState([]); // { size, enabled, price, oldPrice }
+  const [variantsUI, setVariantsUI] = useState([]);
 
-  const sizeOptions = useMemo(() => {
-    return getSizeOptions(product.category, [], variantsUI);
-  }, [product.category, variantsUI]);
-
+  // ========================= Hydrate Form + FIX VARIANTS =========================
   useEffect(() => {
     if (!productData) return;
-    const p = productData.product ? productData.product : productData;
 
-    const currentImages = Array.isArray(p?.image) ? p.image : p?.image ? [p.image] : [];
-    const dbVariants = Array.isArray(p?.variants) ? p.variants : [];
+    const p = productData.product || productData;
+    const imgs = Array.isArray(p.image) ? p.image : p.image ? [p.image] : [];
 
     setProduct({
-      name: p?.name || '',
-      description: p?.description || '',
-      category: p?.category || '',
-      price: p?.price != null ? String(p.price) : '',
-      oldPrice: p?.oldPrice != null ? String(p.oldPrice) : '',
-      homeIndex: p?.homeIndex != null && p?.homeIndex !== '' ? String(p.homeIndex) : '',
-      inStock: typeof p?.inStock === 'boolean' ? p.inStock : true,
-      image: currentImages,
-
-      name_en: p?.name_en || '',
-      name_ar: p?.name_ar || '',
-      description_en: p?.description_en || '',
-      description_ar: p?.description_ar || '',
+      name: p.name || '',
+      description: p.description || '',
+      category: p.category || '',
+      price: p.price != null ? String(p.price) : '',
+      oldPrice: p.oldPrice != null ? String(p.oldPrice) : '',
+      homeIndex: p.homeIndex != null ? String(p.homeIndex) : '',
+      inStock: typeof p.inStock === 'boolean' ? p.inStock : true,
+      image: imgs,
+      name_en: p.name_en || '',
+      name_ar: p.name_ar || '',
+      description_en: p.description_en || '',
+      description_ar: p.description_ar || '',
     });
 
-    setKeepImages(currentImages);
+    setKeepImages(imgs);
 
-    // ✅ هنا الإصلاح: حتى لو التصنيف مو موجود في sizeOptionsByCategory، نطلع الأحجام من dbVariants
-    const opts = getSizeOptions(p?.category, dbVariants, []);
-    const hasSizes = opts.length > 0;
-    setShowVariantSection(hasSizes);
+    const dbVariants = Array.isArray(p.variants) ? p.variants : [];
+    const availableSizes = sizeOptionsByCategory[p.category] || [];
 
-    if (hasSizes) {
-      const mapDb = new Map(
-        dbVariants.map((v) => [String(v?.size || '').trim(), v])
-      );
+    setShowVariantSection(availableSizes.length > 0);
 
-      setVariantsUI(
-        opts.map((opt) => {
-          const found = mapDb.get(opt.value);
-          return {
-            size: opt.value,
-            enabled: Boolean(found),
-            price: found?.price != null ? String(found.price) : '',
-            oldPrice: found?.oldPrice != null ? String(found.oldPrice) : '',
-          };
-        })
-      );
-    } else {
-      setVariantsUI([]);
-    }
+    setVariantsUI(
+      availableSizes.map((size) => {
+        const existing = dbVariants.find((v) => v.size === size);
+        return {
+          size,
+          enabled: !!existing,
+          price: existing ? String(existing.price) : '',
+          oldPrice: existing && existing.oldPrice ? String(existing.oldPrice) : '',
+        };
+      })
+    );
   }, [productData]);
 
-  useEffect(() => {
-    const opts = getSizeOptions(product.category, [], variantsUI);
-    const hasSizes = opts.length > 0;
-    setShowVariantSection(hasSizes);
-
-    if (hasSizes) {
-      setVariantsUI((prev) => {
-        const mapPrev = new Map((prev || []).map((v) => [v.size, v]));
-        return opts.map((opt) => {
-          const existing = mapPrev.get(opt.value);
-          return (
-            existing || {
-              size: opt.value,
-              enabled: false,
-              price: '',
-              oldPrice: '',
-            }
-          );
-        });
-      });
-    } else {
-      setVariantsUI([]);
-    }
-  }, [product.category]);
-
+  // ========================= Handlers =========================
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProduct((prev) => ({ ...prev, [name]: value }));
@@ -200,130 +154,124 @@ const UpdateProduct = () => {
 
   const toggleVariant = (size) => {
     setVariantsUI((prev) =>
-      prev.map((v) => (v.size === size ? { ...v, enabled: !v.enabled } : v))
+      prev.map((v) =>
+        v.size === size ? { ...v, enabled: !v.enabled } : v
+      )
     );
   };
 
   const setVariantField = (size, field, value) => {
     setVariantsUI((prev) =>
-      prev.map((v) => (v.size === size ? { ...v, [field]: value } : v))
+      prev.map((v) =>
+        v.size === size ? { ...v, [field]: value } : v
+      )
     );
   };
 
+  // ========================= Submit =========================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const baseName = product.name || product.name_en;
     const baseDesc = product.description || product.description_en;
 
-    const requiredFields = {
-      'اسم المنتج (EN)': baseName,
-      'اسم المنتج (AR)': product.name_ar,
-      'الوصف (EN)': baseDesc,
-      'الوصف (AR)': product.description_ar,
-      'تصنيف المنتج': product.category,
-      'الصور': (keepImages?.length || 0) + (newImages?.length || 0) > 0,
-    };
+    const variantsPayload = variantsUI
+      .filter((v) => v.enabled)
+      .map((v) => ({
+        size: v.size,
+        price: Number(v.price),
+        oldPrice: v.oldPrice ? Number(v.oldPrice) : 0,
+      }))
+      .filter((v) => v.size && Number.isFinite(v.price) && v.price > 0);
 
-    const missing = Object.entries(requiredFields)
-      .filter(([_, v]) => !v)
-      .map(([k]) => k);
+    const formData = new FormData();
 
-    if (missing.length > 0) {
-      alert(`الرجاء ملء الحقول التالية: ${missing.join('، ')}`);
-      return;
-    }
+    formData.append('name', baseName);
+    formData.append('description', baseDesc);
+    formData.append('category', product.category);
+    formData.append(
+      'price',
+      variantsPayload.length ? String(variantsPayload[0].price) : String(product.price)
+    );
+    formData.append('oldPrice', product.oldPrice || '');
+    formData.append('author', user?._id || '');
+    formData.append('inStock', String(product.inStock));
+    formData.append('homeIndex', product.homeIndex);
 
-    let variantsPayload = [];
-    if (showVariantSection) {
-      variantsPayload = (variantsUI || [])
-        .filter((v) => v.enabled)
-        .map((v) => ({
-          size: v.size,
-          price: Number(v.price),
-          oldPrice: v.oldPrice ? Number(v.oldPrice) : 0,
-        }))
-        .filter((v) => v.size && Number.isFinite(v.price) && v.price > 0);
+    formData.append('variants', JSON.stringify(variantsPayload));
 
-      if (variantsPayload.length === 0) {
-        alert('الرجاء اختيار حجم واحد على الأقل وإدخال سعر صحيح لكل حجم مختار');
-        return;
-      }
-    } else {
-      if (!product.price) {
-        alert('الرجاء إدخال السعر');
-        return;
-      }
-    }
+    formData.append('name_en', product.name_en || baseName);
+    formData.append('name_ar', product.name_ar);
+    formData.append('description_en', product.description_en || baseDesc);
+    formData.append('description_ar', product.description_ar);
 
-    try {
-      const formData = new FormData();
+    formData.append('keepImages', JSON.stringify(keepImages));
+    newImages.forEach((file) => formData.append('image', file));
 
-      formData.append('name', baseName);
-      formData.append('description', baseDesc);
-      formData.append('category', product.category);
+    await updateProduct({ id, body: formData }).unwrap();
 
-      const priceToSend = showVariantSection
-        ? String(variantsPayload[0]?.price || 0)
-        : String(product.price);
+    dispatch(
+      productsApi.util.invalidateTags([{ type: 'Product', id }, 'ProductList'])
+    );
 
-      formData.append('price', priceToSend);
-      formData.append('oldPrice', showVariantSection ? '' : (product.oldPrice || ''));
-      formData.append('author', user?._id || '');
-      formData.append('inStock', String(product.inStock));
-      formData.append('homeIndex', product.homeIndex);
-
-      if (showVariantSection) {
-        formData.append('variants', JSON.stringify(variantsPayload));
-      }
-
-      formData.append('name_en', product.name_en || baseName);
-      formData.append('name_ar', product.name_ar || '');
-      formData.append('description_en', product.description_en || baseDesc);
-      formData.append('description_ar', product.description_ar || '');
-
-      formData.append('keepImages', JSON.stringify(keepImages || []));
-      (newImages || []).forEach((file) => formData.append('image', file));
-
-      await updateProduct({ id, body: formData }).unwrap();
-
-      dispatch(productsApi.util.invalidateTags([{ type: 'Product', id }, 'ProductList']));
-
-      await refetch();
-
-      alert('تم تحديث المنتج بنجاح');
-      navigate('/dashboard/manage-products');
-    } catch (error) {
-      const msg = error?.data?.message || error?.message || 'خطأ غير معروف';
-      alert('حدث خطأ أثناء تحديث المنتج: ' + msg);
-    }
+    alert(lang === 'ar' ? 'تم تحديث المنتج بنجاح' : 'Product updated successfully');
+    navigate('/dashboard/manage-products');
   };
 
-  if (isFetching) return <div className="text-center py-8">جاري تحميل بيانات المنتج...</div>;
-  if (fetchError) return <div className="text-center py-8 text-red-500">خطأ في تحميل بيانات المنتج</div>;
+  // ========================= UI states =========================
+  if (isFetching) {
+    return (
+      <div className="text-center py-8">
+        {lang === 'ar' ? 'جاري تحميل بيانات المنتج...' : 'Loading product data...'}
+      </div>
+    );
+  }
 
+  if (fetchError) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        <div className="mb-3">
+          {lang === 'ar' ? 'خطأ في تحميل بيانات المنتج' : 'Error loading product data'}
+        </div>
+        <button
+          type="button"
+          className="rounded border px-4 py-2 text-sm hover:bg-gray-50"
+          onClick={() => refetch()}
+        >
+          {lang === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+        </button>
+      </div>
+    );
+  }
+
+  // ========================= Render =========================
   return (
-    <div className="container mx-auto mt-8 px-4" dir="rtl">
-      <h2 className="text-2xl font-bold mb-6 text-right">تحديث المنتج</h2>
+    <div className="container mx-auto mt-8 px-4" dir={isRTL ? 'rtl' : 'ltr'}>
+      <h2 className="text-2xl font-bold mb-6">
+        {lang === 'ar' ? 'تحديث المنتج' : 'Update Product'}
+      </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* ===== Names ===== */}
         <TextInput
-          label="اسم المنتج (EN)"
+          label={lang === 'ar' ? 'اسم المنتج (EN)' : 'Product Name (EN)'}
           name="name_en"
-          placeholder="Example: Product name"
+          placeholder={lang === 'ar' ? 'Example: Product name' : 'Example: Product name'}
           value={product.name_en}
           onChange={handleChange}
         />
+
         <TextInput
-          label="اسم المنتج (AR)"
+          label={lang === 'ar' ? 'اسم المنتج (AR)' : 'Product Name (AR)'}
           name="name_ar"
-          placeholder="مثال: اسم المنتج"
+          placeholder={lang === 'ar' ? 'مثال: اسم المنتج' : 'Example: Arabic name'}
           value={product.name_ar}
           onChange={handleChange}
         />
 
+        {/* ===== Category + Home Position ===== */}
         <SelectInput
-          label="تصنيف المنتج"
+          label={lang === 'ar' ? 'تصنيف المنتج' : 'Product Category'}
           name="category"
           value={product.category}
           onChange={handleChange}
@@ -331,16 +279,19 @@ const UpdateProduct = () => {
         />
 
         <SelectInput
-          label="موضع الصفحة الرئيسية (1–6)"
+          label={lang === 'ar' ? 'موضع الصفحة الرئيسية (1–6)' : 'Home Page Position (1–6)'}
           name="homeIndex"
           value={product.homeIndex}
           onChange={handleChange}
           options={homeIndexOptions}
         />
 
+        {/* ===== Variants OR Normal Price ===== */}
         {showVariantSection ? (
           <div className="border rounded-lg p-4 bg-gray-50">
-            <h3 className="font-bold mb-3">الأحجام المتوفرة (ml) وأسعارها</h3>
+            <h3 className="font-bold mb-3">
+              {lang === 'ar' ? 'الأحجام المتوفرة (ml) وأسعارها' : 'Available Sizes (ml) & Prices'}
+            </h3>
 
             <div className="space-y-3">
               {variantsUI.map((v) => (
@@ -359,25 +310,30 @@ const UpdateProduct = () => {
                   {v.enabled && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                       <div>
-                        <label className="block text-sm text-gray-700 mb-1">السعر</label>
+                        <label className="block text-sm text-gray-700 mb-1">
+                          {lang === 'ar' ? 'السعر' : 'Price'}
+                        </label>
                         <input
                           type="number"
                           step="0.001"
                           className="w-full p-2 border rounded-md"
                           value={v.price}
                           onChange={(e) => setVariantField(v.size, 'price', e.target.value)}
-                          placeholder="مثال: 5.500"
+                          placeholder={lang === 'ar' ? 'مثال: 5.500' : 'Example: 5.500'}
                         />
                       </div>
+
                       <div>
-                        <label className="block text-sm text-gray-700 mb-1">السعر القديم (اختياري)</label>
+                        <label className="block text-sm text-gray-700 mb-1">
+                          {lang === 'ar' ? 'السعر القديم (اختياري)' : 'Old Price (optional)'}
+                        </label>
                         <input
                           type="number"
                           step="0.001"
                           className="w-full p-2 border rounded-md"
                           value={v.oldPrice}
                           onChange={(e) => setVariantField(v.size, 'oldPrice', e.target.value)}
-                          placeholder="مثال: 7.500"
+                          placeholder={lang === 'ar' ? 'مثال: 7.500' : 'Example: 7.500'}
                         />
                       </div>
                     </div>
@@ -389,24 +345,26 @@ const UpdateProduct = () => {
         ) : (
           <>
             <TextInput
-              label="السعر القديم (اختياري)"
+              label={lang === 'ar' ? 'السعر القديم (اختياري)' : 'Old Price (optional)'}
               name="oldPrice"
               type="number"
-              placeholder="مثال: 7.500"
+              placeholder={lang === 'ar' ? 'مثال: 7.500' : 'Example: 7.500'}
               value={product.oldPrice}
               onChange={handleChange}
             />
+
             <TextInput
-              label="السعر"
+              label={lang === 'ar' ? 'السعر' : 'Price'}
               name="price"
               type="number"
-              placeholder="مثال: 5.500"
+              placeholder={lang === 'ar' ? 'مثال: 5.500' : 'Example: 5.500'}
               value={product.price}
               onChange={handleChange}
             />
           </>
         )}
 
+        {/* ===== Images ===== */}
         <UpdateImag
           name="image"
           id="image"
@@ -415,62 +373,69 @@ const UpdateProduct = () => {
           setKeepImages={setKeepImages}
         />
 
+        {/* ===== Description EN ===== */}
         <div>
-          <label htmlFor="description_en" className="block text-sm font-medium text-gray-700">
-            وصف المنتج (EN)
+          <label className="block text-sm font-medium text-gray-700">
+            {lang === 'ar' ? 'وصف المنتج (EN)' : 'Product Description (EN)'}
           </label>
           <textarea
             name="description_en"
-            id="description_en"
             className="add-product-InputCSS"
-            value={product.description_en}
-            placeholder="Ingredients / scent / how to use…"
-            onChange={handleChange}
             rows={4}
+            value={product.description_en}
+            placeholder={lang === 'ar' ? 'Ingredients / scent / how to use…' : 'Ingredients / scent / how to use…'}
+            onChange={handleChange}
           />
         </div>
 
+        {/* ===== Description AR ===== */}
         <div>
-          <label htmlFor="description_ar" className="block text-sm font-medium text-gray-700">
-            وصف المنتج (AR)
+          <label className="block text-sm font-medium text-gray-700">
+            {lang === 'ar' ? 'وصف المنتج (AR)' : 'Product Description (AR)'}
           </label>
           <textarea
             name="description_ar"
-            id="description_ar"
             className="add-product-InputCSS"
-            value={product.description_ar}
-            placeholder="المكونات / الرائحة / طريقة الاستخدام…"
-            onChange={handleChange}
             rows={4}
+            value={product.description_ar}
+            placeholder={lang === 'ar' ? 'المكونات / الرائحة / طريقة الاستخدام…' : 'Arabic description…'}
+            onChange={handleChange}
           />
         </div>
 
+        {/* ===== Availability ===== */}
         <div className="flex items-center gap-6">
           <label className="flex items-center gap-2">
             <input
               type="radio"
               name="availability"
-              value="available"
               checked={product.inStock === true}
               onChange={() => setProduct((prev) => ({ ...prev, inStock: true }))}
             />
-            <span>المنتج متوفر</span>
+            <span>{lang === 'ar' ? 'المنتج متوفر' : 'In Stock'}</span>
           </label>
+
           <label className="flex items-center gap-2">
             <input
               type="radio"
               name="availability"
-              value="ended"
               checked={product.inStock === false}
               onChange={() => setProduct((prev) => ({ ...prev, inStock: false }))}
             />
-            <span>انتهى المنتج</span>
+            <span>{lang === 'ar' ? 'انتهى المنتج' : 'Out of Stock'}</span>
           </label>
         </div>
 
+        {/* ===== Submit ===== */}
         <div className="flex justify-end pt-4">
           <button type="submit" className="add-product-btn" disabled={isUpdating}>
-            {isUpdating ? 'جاري التحديث...' : 'حفظ التغييرات'}
+            {isUpdating
+              ? lang === 'ar'
+                ? 'جاري التحديث...'
+                : 'Updating...'
+              : lang === 'ar'
+              ? 'حفظ التغييرات'
+              : 'Save Changes'}
           </button>
         </div>
       </form>

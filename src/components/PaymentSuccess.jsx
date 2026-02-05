@@ -11,11 +11,9 @@ const PaymentSuccess = () => {
   const dispatch = useDispatch();
   const { selectedItems } = useSelector((state) => state.cart);
 
-  // 👇 نأخذ اللغة من الريدوكس
   const lang = useSelector((state) => state.locale?.lang || 'en');
   const isRTL = lang === 'ar';
 
-  // 👇 النصوص باللغتين في مكان واحد
   const TEXT = {
     en: {
       paymentSuccess: 'Payment Successful',
@@ -54,7 +52,6 @@ const PaymentSuccess = () => {
       loading: 'Loading...',
       errorPrefix: 'Error:',
       orderTypeGiftLabel: 'Gift 🎁',
-      // pretty keys
       length: 'Length',
       sleeveLength: 'Sleeve Length',
       width: 'Width',
@@ -105,7 +102,6 @@ const PaymentSuccess = () => {
       loading: 'جاري التحميل...',
       errorPrefix: 'خطأ:',
       orderTypeGiftLabel: 'هدية 🎁',
-      // pretty keys
       length: 'الطول',
       sleeveLength: 'طول الكم',
       width: 'العرض',
@@ -131,9 +127,17 @@ const PaymentSuccess = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_reference_id }),
       })
-        .then((res) =>
-          res.ok ? res.json() : Promise.reject(new Error(`HTTP error! status: ${res.status}`))
-        )
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            const msg =
+              data?.error ||
+              data?.message ||
+              `HTTP error! status: ${res.status}`;
+            throw new Error(msg);
+          }
+          return data;
+        })
         .then(async (data) => {
           if (data.error) throw new Error(data.error);
           if (!data.order) throw new Error('No order data received.');
@@ -148,7 +152,6 @@ const PaymentSuccess = () => {
             (data.order.products || []).map(async (item) => {
               let fetched = {};
               try {
-                // 👇 تعديل المسار ليتوافق مع الـ Backend
                 const response = await fetch(
                   `${getBaseUrl()}/api/products/product/${item.productId}?lang=raw`
                 );
@@ -160,7 +163,6 @@ const PaymentSuccess = () => {
                 /* ignore */
               }
 
-              // Gift card per item, or fallback to order-level gift card
               const gc =
                 item.giftCard &&
                 (item.giftCard.from ||
@@ -182,7 +184,6 @@ const PaymentSuccess = () => {
                 quantity: item.quantity,
                 measurements: item.measurements || {},
                 selectedSize: item.selectedSize,
-                // 👇 هنا نأخذ الفئة من الـ item أو من الـ product بثلاث احتمالات
                 category:
                   item.category ||
                   (lang === 'ar'
@@ -209,7 +210,6 @@ const PaymentSuccess = () => {
     }
   }, [dispatch, selectedItems, lang]);
 
-  // Robust UAE check (Arabic or English)
   const isUAE = (() => {
     const c = order?.country?.trim()?.toLowerCase() || '';
     return c === 'الإمارات' || c === 'uae' || c === 'united arab emirates';
@@ -268,10 +268,7 @@ const PaymentSuccess = () => {
   );
 
   return (
-    <section
-      className="section__container rounded p-6"
-      dir={isRTL ? 'rtl' : 'ltr'}
-    >
+    <section className="section__container rounded p-6" dir={isRTL ? 'rtl' : 'ltr'}>
       <h2 className="text-2xl font-bold mb-2">
         {TEXT.paymentSuccess}
         {hasGift && (
@@ -284,16 +281,17 @@ const PaymentSuccess = () => {
           </span>
         )}
       </h2>
+
       <p className="text-gray-600">
         {TEXT.orderNumber}: {order.orderId}
       </p>
+
       {order.paymentSessionId && (
         <p className="text-gray-600">
           {TEXT.paymentSessionId}: {order.paymentSessionId}
         </p>
       )}
 
-      {/* Order-level Gift Card */}
       {hasGift && (
         <div className="mt-4 p-3 rounded-md bg-pink-50 border border-pink-200 text-pink-900 text-sm">
           <h4 className="font-semibold mb-2">{TEXT.giftCardDetails}</h4>
@@ -341,15 +339,11 @@ const PaymentSuccess = () => {
         </div>
       )}
 
-      {/* Products */}
       <div className="mt-8 pt-6">
         <h3 className="text-xl font-bold mb-4">{TEXT.productsTitle}</h3>
         <div className="space-y-6">
           {products.map((product, index) => (
-            <div
-              key={index}
-              className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg"
-            >
+            <div key={index} className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg">
               <div className="md:w-1/4">
                 <img
                   src={Array.isArray(product.image) ? product.image[0] : product.image}
@@ -361,8 +355,10 @@ const PaymentSuccess = () => {
                   }}
                 />
               </div>
+
               <div className="md:w-3/4">
                 <h4 className="text-lg font-semibold">{product.name}</h4>
+
                 {product.description && (
                   <p className="text-gray-600 mt-2">{product.description}</p>
                 )}
@@ -386,7 +382,6 @@ const PaymentSuccess = () => {
 
                 {renderMeasurements(product.measurements)}
 
-                {/* Item-level Gift Card */}
                 {product.giftCard &&
                   ((product.giftCard.from && String(product.giftCard.from).trim()) ||
                     (product.giftCard.to && String(product.giftCard.to).trim()) ||
@@ -407,24 +402,18 @@ const PaymentSuccess = () => {
                             {product.giftCard.to}
                           </div>
                         )}
-                        {product.giftCard.phone &&
-                          String(product.giftCard.phone).trim() && (
-                            <div>
-                              <span className="font-medium">
-                                {TEXT.recipientPhone}:{' '}
-                              </span>
-                              {product.giftCard.phone}
-                            </div>
-                          )}
-                        {product.giftCard.note &&
-                          String(product.giftCard.note).trim() && (
-                            <div className="md:col-span-2">
-                              <span className="font-medium">
-                                {TEXT.giftNotes}:{' '}
-                              </span>
-                              {product.giftCard.note}
-                            </div>
-                          )}
+                        {product.giftCard.phone && String(product.giftCard.phone).trim() && (
+                          <div>
+                            <span className="font-medium">{TEXT.recipientPhone}:{' '}</span>
+                            {product.giftCard.phone}
+                          </div>
+                        )}
+                        {product.giftCard.note && String(product.giftCard.note).trim() && (
+                          <div className="md:col-span-2">
+                            <span className="font-medium">{TEXT.giftNotes}:{' '}</span>
+                            {product.giftCard.note}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -434,7 +423,6 @@ const PaymentSuccess = () => {
         </div>
       </div>
 
-      {/* Order Summary */}
       <div className="mt-8 border-t pt-6">
         <h3 className="text-xl font-bold mb-4">{TEXT.orderSummary}</h3>
         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
@@ -478,13 +466,10 @@ const PaymentSuccess = () => {
                 </span>
               </div>
 
-              <div className="text-xs text-gray-600">
-                {TEXT.remainingInfo}
-              </div>
+              <div className="text-xs text-gray-600">{TEXT.remainingInfo}</div>
             </>
           )}
 
-          {/* Also show gift data in summary */}
           {hasGift && (
             <div className="rounded-md border bg-pink-50 p-3 space-y-2">
               <div className="flex justify-between">
@@ -508,9 +493,7 @@ const PaymentSuccess = () => {
                 )}
                 {order.giftCard.phone && (
                   <div>
-                    <span className="font-medium">
-                      {TEXT.recipientPhone}:{' '}
-                    </span>
+                    <span className="font-medium">{TEXT.recipientPhone}:{' '}</span>
                     {order.giftCard.phone}
                   </div>
                 )}
