@@ -21,9 +21,29 @@ const ProductCards = ({ products }) => {
 
   const priceFor = (p) => {
     if (!p) return 0;
-    if (typeof p.price === "object" && p.price !== null) {
-      return (p.price["500 جرام"] || 0) * rate;
+    
+    // 1. التحقق من وجود variants أولاً
+    if (Array.isArray(p.variants) && p.variants.length > 0) {
+      const validPrices = p.variants
+        .map(v => Number(v.price))
+        .filter(price => !isNaN(price) && price > 0);
+      
+      if (validPrices.length > 0) {
+        return Math.max(...validPrices) * rate;
+      }
     }
+    
+    // 2. التحقق من كائن price (مثل {"500 جرام": 5, "1 كيلو": 9})
+    if (typeof p.price === "object" && p.price !== null) {
+      const priceValues = Object.values(p.price)
+        .filter(val => typeof val === 'number' && !isNaN(val) && val > 0);
+      
+      if (priceValues.length > 0) {
+        return Math.max(...priceValues) * rate;
+      }
+    }
+    
+    // 3. السعر العادي
     return (p.regularPrice || p.price || 0) * rate;
   };
 
