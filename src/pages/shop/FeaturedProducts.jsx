@@ -5,6 +5,8 @@ import { useFetchAllProductsQuery } from '../../redux/features/products/products
 
 const FeaturedProducts = ({ onLoadingChange }) => {
   const lang = useSelector((s) => s.locale?.lang || "en");
+  const { country } = useSelector((state) => state.cart);
+  
   const {
     data: { products = [] } = {},
     error,
@@ -35,6 +37,46 @@ const FeaturedProducts = ({ onLoadingChange }) => {
     };
   }, [onLoadingChange]);
 
+  // حساب العملة والسعر
+  const currency = country === "الإمارات" ? "AED" : "OMR";
+  const rate = country === "الإمارات" ? 9.5 : 1;
+
+  const getHighestPrice = (product) => {
+    if (!product) return 0;
+    
+    // 1. التحقق من variants
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      const validPrices = product.variants
+        .map(v => Number(v.price))
+        .filter(price => !isNaN(price) && price > 0);
+      if (validPrices.length > 0) return Math.max(...validPrices);
+    }
+    
+    // 2. التحقق من كائن price
+    if (typeof product.price === "object" && product.price !== null) {
+      const priceValues = Object.values(product.price)
+        .filter(val => typeof val === 'number' && !isNaN(val) && val > 0);
+      if (priceValues.length > 0) return Math.max(...priceValues);
+    }
+    
+    // 3. السعر العادي
+    return product.regularPrice || product.price || 0;
+  };
+
+  const getOldPrice = (product) => {
+    if (!product) return 0;
+    
+    // التحقق من oldPrice في variants
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      const validOldPrices = product.variants
+        .map(v => Number(v.oldPrice))
+        .filter(price => !isNaN(price) && price > 0);
+      if (validOldPrices.length > 0) return Math.max(...validOldPrices);
+    }
+    
+    return product.oldPrice || 0;
+  };
+
   // أثناء التحميل
   if (isFetching || isLoading) {
     return <div className="py-12 text-center text-gray-500 min-h-[200px]">{lang === "ar" ? "جاري التحميل…" : "Loading…"}</div>;
@@ -54,41 +96,47 @@ const FeaturedProducts = ({ onLoadingChange }) => {
         </h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-          {products.map((product) => (
-            <div key={product._id} className="group relative bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-              <Link to={`/shop/${product._id}`} className="block">
-                <div className="aspect-square overflow-hidden">
-                  <img
-                    src={product.image?.[0] || 'https://via.placeholder.com/400x400'}
-                    alt={product?.name || ''}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://via.placeholder.com/400x400';
-                    }}
-                  />
-                </div>
-                
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-1">
-                    {product.name}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                    {product.description?.substring(0, 80)}...
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#0E161B] font-bold">
-                      {lang === "ar" ? `${product.price} ر.ع` : `OMR ${product.price}`}
-                    </span>
-                    {product.oldPrice && product.oldPrice > product.price && (
-                      <span className="text-sm text-gray-500 line-through">
-                        {lang === "ar" ? `${product.oldPrice} ر.ع` : `OMR ${product.oldPrice}`}
-                      </span>
-                    )}
+          {products.map((product) => {
+            const price = getHighestPrice(product) * rate;
+            const oldPrice = getOldPrice(product) * rate;
+            const hasDiscount = oldPrice > price;
+            
+            return (
+              <div key={product._id} className="group relative bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                <Link to={`/shop/${product._id}`} className="block">
+                  <div className="aspect-square overflow-hidden">
+                    <img
+                      src={product.image?.[0] || 'https://via.placeholder.com/400x400'}
+                      alt={product?.name || ''}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/400x400';
+                      }}
+                    />
                   </div>
-                </div>
-              </Link>
-            </div>
-          ))}
+                  
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                      {product.description?.substring(0, 80)}...
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#0E161B] font-bold">
+                        {price.toFixed(2)} {currency}
+                      </span>
+                      {hasDiscount && (
+                        <span className="text-sm text-gray-500 line-through">
+                          {oldPrice.toFixed(2)} {currency}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            );
+          })}
         </div>
         
         <div className="text-center mt-10">
