@@ -124,8 +124,8 @@ Please confirm your order receipt. Thank you for your trust!`;
         // التفاصيل
         name: lang === 'ar' ? 'الاسم' : 'Name',
         phone: lang === 'ar' ? 'رقم الهاتف' : 'Phone Number',
-        country: lang === 'ar' ? 'البلد' : 'Country',
-        state: lang === 'ar' ? 'الولاية' : 'State',
+        state: lang === 'ar' ? 'الولاية' : 'state',
+        wilayat: lang === 'ar' ? 'المنطقة' : 'Address',
         notes: lang === 'ar' ? 'ملاحظات' : 'Notes',
         noNotes: lang === 'ar' ? 'لا توجد ملاحظات' : 'No notes',
         item: lang === 'ar' ? '#' : '#',
@@ -328,8 +328,8 @@ Please confirm your order receipt. Thank you for your trust!`;
                                         {translations.shippingInfo}
                                     </h3>
                                     <div className="space-y-1 text-sm">
-                                        <p><strong>{translations.country}:</strong> {viewOrder.country || translations.notSpecified}</p>
-                                        <p><strong>{translations.state}:</strong> {viewOrder.wilayat || translations.notSpecified}</p>
+                                        <p><strong>{translations.state}:</strong> {viewOrder.state || translations.notSpecified}</p>
+                                        <p><strong>{translations.wilayat}:</strong> {viewOrder.wilayat || translations.notSpecified}</p>
                                         <p><strong>{translations.notes}:</strong> {viewOrder.description || translations.noNotes}</p>
                                     </div>
                                 </div>
