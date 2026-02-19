@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { clearCart, updateQuantity, removeFromCart } from "../../redux/features/cart/cartSlice";
 
-const FREE_SHIPPING_THRESHOLD = 14; // 🔹 الحد الأدنى للشحن المجاني (OMR)
+const FREE_SHIPPING_THRESHOLD = 15; // 🔹 الحد الأدنى للشحن المجاني (OMR)
 
 const OrderSummary = ({ onClose }) => {
   const dispatch = useDispatch();
