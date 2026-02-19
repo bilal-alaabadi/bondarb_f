@@ -46,7 +46,7 @@ const PaymentSuccess = () => {
       customerName: 'Customer Name:',
       email: 'Email:',
       phone: 'Phone:',
-      country: 'Country:',
+      state: 'state:',
       address: 'Address:',
       orderDate: 'Order Date:',
       loading: 'Loading...',
@@ -96,7 +96,7 @@ const PaymentSuccess = () => {
       customerName: 'اسم العميل:',
       email: 'البريد الإلكتروني:',
       phone: 'رقم الهاتف:',
-      country: 'الدولة:',
+      state: 'المنطقة:',
       address: 'العنوان:',
       orderDate: 'تاريخ الطلب:',
       loading: 'جاري التحميل...',
@@ -211,7 +211,7 @@ const PaymentSuccess = () => {
   }, [dispatch, selectedItems, lang]);
 
   const isUAE = (() => {
-    const c = order?.country?.trim()?.toLowerCase() || '';
+    const c = order?.state?.trim()?.toLowerCase() || '';
     return c === 'الإمارات' || c === 'uae' || c === 'united arab emirates';
   })();
 
@@ -528,8 +528,8 @@ const PaymentSuccess = () => {
           </div>
 
           <div className="flex justify-between py-2">
-            <span>{TEXT.country}</span>
-            <span className="font-semibold">{order.country}</span>
+            <span>{TEXT.state}</span>
+            <span className="font-semibold">{order.state}</span>
           </div>
 
           <div className="flex justify-between py-2">
