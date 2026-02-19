@@ -16,10 +16,17 @@ const Checkout = () => {
   const [wilayat, setWilayat] = useState('');
   const [description, setDescription] = useState('');
 
-  const { products, totalPrice, country } = useSelector((state) => state.cart);
+  const { products, totalPrice, state: storeState } = useSelector((state) => state.cart);
+
+  // ✅ اجعل state قابلة للكتابة
+  const [state, setState] = useState(storeState || '');
+
+  useEffect(() => {
+    setState(storeState || '');
+  }, [storeState]);
 
   // ========================= Shipping + Currency =========================
-  const usingAED = country === 'الإمارات';
+  const usingAED = state === 'الإمارات';
   const currency = usingAED ? 'AED' : 'OMR';
   const exchangeRate = usingAED ? 9.5 : 1;
 
@@ -49,8 +56,8 @@ const Checkout = () => {
       return;
     }
 
-    if (!customerName || !customerPhone || !country || !wilayat || !email) {
-      setError("Please fill in all required fields (Full Name, Phone, Email, Country, Address).");
+    if (!customerName || !customerPhone || !state || !wilayat || !email) {
+      setError("Please fill in all required fields (Full Name, Phone, Email, state, Address).");
       return;
     }
 
@@ -61,8 +68,7 @@ const Checkout = () => {
         price: product.price,
         quantity: product.quantity,
         image: Array.isArray(product.image) ? product.image[0] : product.image,
-  selectedSize: product.selectedSize || product.size || '',
-
+        selectedSize: product.selectedSize || product.size || '',
         ...(product.selectedSize && { selectedSize: product.selectedSize }),
         ...(product.selectedColor && { selectedColor: product.selectedColor }),
         ...(product.cartKey && { cartKey: product.cartKey }),
@@ -70,11 +76,11 @@ const Checkout = () => {
       })),
       customerName,
       customerPhone,
-      country,
+      state, // ✅ الآن من input قابل للكتابة
       wilayat,
       description,
       email,
-      freeShipping: isFreeShipping, // 🔹 اختياري للتتبع
+      freeShipping: isFreeShipping,
     };
 
     try {
@@ -149,12 +155,13 @@ const Checkout = () => {
             </div>
 
             <div>
-              <label className="block text-gray-700 mb-2">Country</label>
+              <label className="block text-gray-700 mb-2">state</label>
               <input
                 type="text"
-                className="w-full p-2 border rounded-md bg-gray-100"
-                value={country}
-                readOnly
+                className="w-full p-2 border rounded-md"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                required
               />
             </div>
 
