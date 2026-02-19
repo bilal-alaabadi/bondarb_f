@@ -5,7 +5,7 @@ import { RiBankCardLine } from "react-icons/ri";
 import { getBaseUrl } from '../../utils/baseURL';
 import { useNavigate } from 'react-router-dom';
 
-const FREE_SHIPPING_THRESHOLD = 14; // 🔹 حد الشحن المجاني (OMR)
+const FREE_SHIPPING_THRESHOLD = 15; // 🔹 حد الشحن المجاني (OMR)
 
 const Checkout = () => {
   const navigate = useNavigate();
